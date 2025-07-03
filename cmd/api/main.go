@@ -9,11 +9,11 @@ import (
 	"syscall"
 	"time"
 
-	"go-gin-hexagonal/internal/adapter/auth"
 	dbAdapter "go-gin-hexagonal/internal/adapter/database"
 	router "go-gin-hexagonal/internal/adapter/http"
 	"go-gin-hexagonal/internal/adapter/http/handlers"
 	"go-gin-hexagonal/internal/adapter/http/middleware"
+	"go-gin-hexagonal/internal/adapter/security"
 	"go-gin-hexagonal/internal/application/service"
 
 	"go-gin-hexagonal/pkg/config"
@@ -49,8 +49,8 @@ func main() {
 	refreshTokenRepo := dbAdapter.NewRefreshTokenRepository(db)
 
 	// Auth adapters
-	passwordHasher := auth.NewBcryptHasher()
-	tokenManager := auth.NewJWTTokenManager(auth.JWTConfig{
+	passwordHasher := security.NewBcryptHasher()
+	tokenManager := security.NewJWTTokenManager(security.JWTConfig{
 		AccessTokenSecret:  cfg.JWT.AccessTokenSecret,
 		RefreshTokenSecret: cfg.JWT.RefreshTokenSecret,
 		AccessTokenExpiry:  cfg.JWT.AccessTokenExpiry,
