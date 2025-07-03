@@ -95,7 +95,7 @@ func (tm *JWTTokenManager) GenerateRefreshToken(userID uuid.UUID) (string, time.
 func (tm *JWTTokenManager) ValidateAccessToken(tokenString string) (*entity.AccessTokenClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("unexpected signing method")
+			return nil, ports.ErrUnexpectedSinginMethod
 		}
 		return []byte(tm.accessTokenSecret), nil
 	})
@@ -107,17 +107,17 @@ func (tm *JWTTokenManager) ValidateAccessToken(tokenString string) (*entity.Acce
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		tokenType, ok := claims["token_type"].(string)
 		if !ok || tokenType != "access" {
-			return nil, errors.New("invalid token type")
+			return nil, ports.ErrTokenInvalid
 		}
 
 		userIDStr, ok := claims["user_id"].(string)
 		if !ok {
-			return nil, errors.New("invalid user_id claim")
+			return nil, ports.ErrInvalidClaims
 		}
 
 		userID, err := uuid.Parse(userIDStr)
 		if err != nil {
-			return nil, errors.New("invalid user_id format")
+			return nil, ports.ErrInvalidIDFormat
 		}
 
 		email, _ := claims["email"].(string)
@@ -142,7 +142,7 @@ func (tm *JWTTokenManager) ValidateAccessToken(tokenString string) (*entity.Acce
 		}, nil
 	}
 
-	return nil, errors.New("invalid token")
+	return nil, ports.ErrTokenInvalid
 }
 
 func (tm *JWTTokenManager) ValidateRefreshToken(tokenString string) (*entity.RefreshTokenClaims, error) {
@@ -160,17 +160,17 @@ func (tm *JWTTokenManager) ValidateRefreshToken(tokenString string) (*entity.Ref
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		tokenType, ok := claims["token_type"].(string)
 		if !ok || tokenType != "refresh" {
-			return nil, errors.New("invalid token type")
+			return nil, ports.ErrTokenInvalid
 		}
 
 		userIDStr, ok := claims["user_id"].(string)
 		if !ok {
-			return nil, errors.New("invalid user_id claim")
+			return nil, ports.ErrInvalidClaims
 		}
 
 		userID, err := uuid.Parse(userIDStr)
 		if err != nil {
-			return nil, errors.New("invalid user_id format")
+			return nil, ports.ErrInvalidIDFormat
 		}
 
 		issuer, _ := claims["issuer"].(string)
@@ -191,5 +191,5 @@ func (tm *JWTTokenManager) ValidateRefreshToken(tokenString string) (*entity.Ref
 		}, nil
 	}
 
-	return nil, errors.New("invalid token")
+	return nil, ports.ErrTokenInvalid
 }
