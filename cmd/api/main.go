@@ -9,11 +9,11 @@ import (
 	"syscall"
 	"time"
 
-	"go-gin-hexagonal/internal/adapters/auth"
-	dbAdapter "go-gin-hexagonal/internal/adapters/database"
-	"go-gin-hexagonal/internal/adapters/http/handlers"
-	"go-gin-hexagonal/internal/adapters/http/middleware"
-	"go-gin-hexagonal/internal/adapters/http/routes"
+	"go-gin-hexagonal/internal/adapter/auth"
+	dbAdapter "go-gin-hexagonal/internal/adapter/database"
+	"go-gin-hexagonal/internal/adapter/http/handlers"
+	"go-gin-hexagonal/internal/adapter/http/middleware"
+	"go-gin-hexagonal/internal/adapter/http/routes"
 	"go-gin-hexagonal/internal/application/service"
 
 	"go-gin-hexagonal/pkg/config"

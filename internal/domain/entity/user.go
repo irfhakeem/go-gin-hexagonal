@@ -7,8 +7,6 @@ import (
 	"gorm.io/gorm"
 )
 
-type Role string
-
 type User struct {
 	ID        uuid.UUID      `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
 	Email     string         `json:"email" gorm:"unique;not null;type:varchar(100)"`
