@@ -1,7 +1,8 @@
 package entity
 
 import (
-	"github.com/golang-jwt/jwt/v4"
+	"time"
+
 	"github.com/google/uuid"
 )
 
@@ -10,11 +11,19 @@ type AccessTokenClaims struct {
 	Email     string
 	Username  string
 	TokenType string
-	jwt.RegisteredClaims
+	ExpiresAt time.Time
+	IssuedAt  time.Time
+	NotBefore time.Time
+	Issuer    string
+	Subject   string
 }
 
 type RefreshTokenClaims struct {
 	UserID    uuid.UUID
 	TokenType string
-	jwt.RegisteredClaims
+	ExpiresAt time.Time
+	IssuedAt  time.Time
+	NotBefore time.Time
+	Issuer    string
+	Subject   string
 }
