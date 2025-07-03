@@ -58,10 +58,7 @@ func (r *MockUserRepository) ListUsers(ctx context.Context, page, pageSize int, 
 
 	total := len(users)
 	start := (page - 1) * pageSize
-	end := start + pageSize
-	if end > total {
-		end = total
-	}
+	end := min(start+pageSize, total)
 
 	return users[start:end], total, nil
 }
@@ -100,16 +97,18 @@ func TestCRUDUser(t *testing.T) {
 		DeletedAt: nil,
 	}
 
+	ctx := context.Background()
+
 	// Create user
-	assert.NoError(t, mockRepo.Create(context.Background(), user))
+	assert.NoError(t, mockRepo.Create(ctx, user))
 
 	// Get user by ID
-	retrievedUser, err := mockRepo.GetByID(context.Background(), userID)
+	retrievedUser, err := mockRepo.GetByID(ctx, userID)
 	assert.NoError(t, err)
 	assert.Equal(t, "johndoe@example.com", retrievedUser.Email)
 
 	// List users
-	_, total, err := mockRepo.ListUsers(context.Background(), 1, 10, "")
+	_, total, err := mockRepo.ListUsers(ctx, 1, 10, "")
 	assert.NoError(t, err)
 	assert.GreaterOrEqual(t, total, 2)
 
@@ -120,18 +119,18 @@ func TestCRUDUser(t *testing.T) {
 		Username: "johndoeUPDATED",
 		Name:     "John Doe Updated",
 	}
-	assert.NoError(t, mockRepo.Update(context.Background(), updatedUser))
+	assert.NoError(t, mockRepo.Update(ctx, updatedUser))
 
 	// Verify update
-	retrievedUser, err = mockRepo.GetByID(context.Background(), userID)
+	retrievedUser, err = mockRepo.GetByID(ctx, userID)
 	assert.NoError(t, err)
 	assert.Equal(t, "johndoeUPDATED@example.com", retrievedUser.Email)
 
 	// Delete user
-	assert.NoError(t, mockRepo.Delete(context.Background(), userID))
+	assert.NoError(t, mockRepo.Delete(ctx, userID))
 
 	// Verify deletion
-	_, err = mockRepo.GetByID(context.Background(), userID)
+	_, err = mockRepo.GetByID(ctx, userID)
 	assert.Error(t, err)
 	assert.Equal(t, ports.ErrUserNotFound, err)
 }
