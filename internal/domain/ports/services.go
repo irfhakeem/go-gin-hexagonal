@@ -1,44 +1,24 @@
 package ports
 
 import (
-	"go-gin-hexagonal/internal/domain/entity"
-	"time"
+	"context"
 
-	"github.com/golang-jwt/jwt/v4"
+	"go-gin-hexagonal/internal/domain/dto"
+
 	"github.com/google/uuid"
 )
 
 type AuthService interface {
-	GenerateAccessToken(user *entity.User) (string, error)
-	GenerateRefreshToken(userID uuid.UUID) (string, error)
-	ValidateAccessToken(tokenString string) (*AccessTokenClaims, error)
-	ValidateRefreshToken(tokenString string) (*RefreshTokenClaims, error)
-	HashPassword(password string) (string, error)
-	VerifyPassword(hashedPassword, password string) error
+	Login(ctx context.Context, req *dto.LoginRequest) (*dto.LoginResponse, error)
+	Register(ctx context.Context, req *dto.RegisterRequest) error
+	RefreshToken(ctx context.Context, req *dto.RefreshTokenRequest) (*dto.RefreshTokenResponse, error)
+	Logout(ctx context.Context, userID uuid.UUID) error
 }
 
-type PasswordHasher interface {
-	Hash(password string) (string, error)
-	Verify(hashedPassword, password string) error
-}
-
-type TokenManager interface {
-	GenerateAccessToken(user *entity.User) (string, time.Time, error)
-	GenerateRefreshToken(userID uuid.UUID) (string, time.Time, error)
-	ValidateAccessToken(token string) (*AccessTokenClaims, error)
-	ValidateRefreshToken(token string) (*RefreshTokenClaims, error)
-}
-
-type AccessTokenClaims struct {
-	UserID    uuid.UUID `json:"user_id"`
-	Email     string    `json:"email"`
-	Username  string    `json:"username"`
-	TokenType string    `json:"token_type"`
-	jwt.RegisteredClaims
-}
-
-type RefreshTokenClaims struct {
-	UserID    uuid.UUID `json:"user_id"`
-	TokenType string    `json:"token_type"`
-	jwt.RegisteredClaims
+type UserService interface {
+	GetProfile(ctx context.Context, userID uuid.UUID) (*dto.UserInfo, error)
+	UpdateProfile(ctx context.Context, userID uuid.UUID, req *dto.UpdateUserRequest) (*dto.UserInfo, error)
+	ChangePassword(ctx context.Context, userID uuid.UUID, req *dto.ChangePasswordRequest) error
+	ListUsers(ctx context.Context, req *dto.UserListRequest) (*dto.UserListResponse, error)
+	DeleteUser(ctx context.Context, userID uuid.UUID) error
 }

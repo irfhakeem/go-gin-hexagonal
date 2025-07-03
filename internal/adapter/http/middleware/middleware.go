@@ -3,9 +3,9 @@ package middleware
 import (
 	"strings"
 
+	response "go-gin-hexagonal/internal/adapter/http"
+	"go-gin-hexagonal/internal/adapter/http/message"
 	"go-gin-hexagonal/internal/domain/ports"
-	"go-gin-hexagonal/pkg/message"
-	"go-gin-hexagonal/pkg/response"
 
 	"github.com/gin-gonic/gin"
 )

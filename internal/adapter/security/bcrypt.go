@@ -1,4 +1,4 @@
-package auth
+package security
 
 import (
 	"go-gin-hexagonal/internal/domain/ports"

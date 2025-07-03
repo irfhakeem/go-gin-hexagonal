@@ -25,6 +25,9 @@ var (
 	ErrTokenNotFound               = errors.New("token not found")
 	ErrInvalidCredentials          = errors.New("invalid credentials")
 	ErrAuthorizationHeaderNotFound = errors.New("authorization header not found")
+	ErrInvalidIDFormat             = errors.New("invalid ID format")
+	ErrUnexpectedSinginMethod      = errors.New("unexpected signin method")
+	ErrInvalidClaims               = errors.New("invalid claims in token")
 
 	// User
 	ErrUserNotFound      = errors.New("user not found")

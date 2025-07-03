@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	"go-gin-hexagonal/internal/application/dto"
+	"go-gin-hexagonal/internal/domain/dto"
 	"go-gin-hexagonal/internal/domain/entity"
 	"go-gin-hexagonal/internal/domain/ports"
 
@@ -22,7 +22,7 @@ func NewAuthService(
 	refreshTokenRepo ports.RefreshTokenRepository,
 	tokenManager ports.TokenManager,
 	passwordHasher ports.PasswordHasher,
-) *AuthService {
+) ports.AuthService {
 	return &AuthService{
 		userRepo:         userRepo,
 		refreshTokenRepo: refreshTokenRepo,

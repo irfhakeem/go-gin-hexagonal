@@ -3,7 +3,7 @@ package database
 import (
 	"log"
 
-	"go-gin-hexagonal/internal/domain/entity"
+	"go-gin-hexagonal/internal/adapter/database/model"
 	"go-gin-hexagonal/pkg/config"
 
 	"gorm.io/driver/postgres"
@@ -44,8 +44,8 @@ func RunMigrations(db *gorm.DB) error {
 	log.Println("Running database migrations...")
 
 	err := db.AutoMigrate(
-		&entity.User{},
-		&entity.RefreshToken{},
+		&model.User{},
+		&model.RefreshToken{},
 	)
 
 	if err != nil {

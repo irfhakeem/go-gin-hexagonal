@@ -1,23 +1,21 @@
 package handlers
 
 import (
-	"strconv"
-
-	"go-gin-hexagonal/internal/application/dto"
-	"go-gin-hexagonal/internal/application/service"
+	response "go-gin-hexagonal/internal/adapter/http"
+	"go-gin-hexagonal/internal/adapter/http/message"
+	"go-gin-hexagonal/internal/domain/dto"
 	"go-gin-hexagonal/internal/domain/ports"
-	"go-gin-hexagonal/pkg/message"
-	"go-gin-hexagonal/pkg/response"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
 type UserHandler struct {
-	userService *service.UserService
+	userService ports.UserService
 }
 
-func NewUserHandler(userService *service.UserService) *UserHandler {
+func NewUserHandler(userService ports.UserService) *UserHandler {
 	return &UserHandler{
 		userService: userService,
 	}
