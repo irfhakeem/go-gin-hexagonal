@@ -45,19 +45,20 @@ func (s *AuthService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.Lo
 		return nil, ports.ErrInvalidCredentials
 	}
 
-	accessToken, err := s.tokenManager.GenerateAccessToken(user)
+	accessToken, _, err := s.tokenManager.GenerateAccessToken(user)
 	if err != nil {
 		return nil, err
 	}
 
-	refreshToken, err := s.tokenManager.GenerateRefreshToken(user.ID)
+	refreshToken, refreshTokenExpiry, err := s.tokenManager.GenerateRefreshToken(user.ID)
 	if err != nil {
 		return nil, err
 	}
 
 	refreshTokenEntity := &entity.RefreshToken{
-		UserID: user.ID,
-		Token:  refreshToken,
+		UserID:    user.ID,
+		Token:     refreshToken,
+		ExpiresAt: refreshTokenExpiry,
 	}
 	if err := s.refreshTokenRepo.Save(ctx, refreshTokenEntity); err != nil {
 		return nil, err
@@ -66,8 +67,6 @@ func (s *AuthService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.Lo
 	return &dto.LoginResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
-		TokenType:    "Bearer",
-		ExpiresIn:    3600,
 	}, nil
 }
 
@@ -111,12 +110,12 @@ func (s *AuthService) RefreshToken(ctx context.Context, req *dto.RefreshTokenReq
 		return nil, ports.ErrUserNotFound
 	}
 
-	newAccessToken, err := s.tokenManager.GenerateAccessToken(user)
+	newAccessToken, _, err := s.tokenManager.GenerateAccessToken(user)
 	if err != nil {
 		return nil, err
 	}
 
-	newRefreshToken, err := s.tokenManager.GenerateRefreshToken(user.ID)
+	newRefreshToken, refreshTokenExpiry, err := s.tokenManager.GenerateRefreshToken(user.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -124,8 +123,9 @@ func (s *AuthService) RefreshToken(ctx context.Context, req *dto.RefreshTokenReq
 	s.refreshTokenRepo.RevokeByToken(ctx, req.RefreshToken)
 
 	newRefreshTokenEntity := &entity.RefreshToken{
-		UserID: user.ID,
-		Token:  newRefreshToken,
+		UserID:    user.ID,
+		Token:     newRefreshToken,
+		ExpiresAt: refreshTokenExpiry,
 	}
 	if err := s.refreshTokenRepo.Save(ctx, newRefreshTokenEntity); err != nil {
 		return nil, err
@@ -134,8 +134,6 @@ func (s *AuthService) RefreshToken(ctx context.Context, req *dto.RefreshTokenReq
 	return &dto.RefreshTokenResponse{
 		AccessToken:  newAccessToken,
 		RefreshToken: newRefreshToken,
-		TokenType:    "Bearer",
-		ExpiresIn:    3600,
 	}, nil
 }
 

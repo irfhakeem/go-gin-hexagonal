@@ -34,14 +34,15 @@ func NewJWTTokenManager(config JWTConfig) ports.TokenManager {
 	}
 }
 
-func (tm *JWTTokenManager) GenerateAccessToken(user *entity.User) (string, error) {
+func (tm *JWTTokenManager) GenerateAccessToken(user *entity.User) (string, time.Time, error) {
+	expiryDate := time.Now().Add(tm.accessTokenExpiry)
 	claims := &ports.AccessTokenClaims{
 		UserID:    user.ID,
 		Email:     user.Email,
 		Username:  user.Username,
 		TokenType: "access",
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(tm.accessTokenExpiry)),
+			ExpiresAt: jwt.NewNumericDate(expiryDate),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
 			Issuer:    "go-gin-hexagonal",
@@ -50,15 +51,17 @@ func (tm *JWTTokenManager) GenerateAccessToken(user *entity.User) (string, error
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(tm.accessTokenSecret))
+	tokenString, err := token.SignedString([]byte(tm.accessTokenSecret))
+	return tokenString, expiryDate, err
 }
 
-func (tm *JWTTokenManager) GenerateRefreshToken(userID uuid.UUID) (string, error) {
+func (tm *JWTTokenManager) GenerateRefreshToken(userID uuid.UUID) (string, time.Time, error) {
+	expiryDate := time.Now().Add(tm.refreshTokenExpiry)
 	claims := &ports.RefreshTokenClaims{
 		UserID:    userID,
 		TokenType: "refresh",
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(tm.refreshTokenExpiry)),
+			ExpiresAt: jwt.NewNumericDate(expiryDate),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
 			Issuer:    "go-gin-hexagonal",
@@ -67,7 +70,8 @@ func (tm *JWTTokenManager) GenerateRefreshToken(userID uuid.UUID) (string, error
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(tm.refreshTokenSecret))
+	tokenString, err := token.SignedString([]byte(tm.refreshTokenSecret))
+	return tokenString, expiryDate, err
 }
 
 func (tm *JWTTokenManager) ValidateAccessToken(tokenString string) (*ports.AccessTokenClaims, error) {

@@ -2,6 +2,7 @@ package ports
 
 import (
 	"go-gin-hexagonal/internal/domain/entity"
+	"time"
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
@@ -22,8 +23,8 @@ type PasswordHasher interface {
 }
 
 type TokenManager interface {
-	GenerateAccessToken(user *entity.User) (string, error)
-	GenerateRefreshToken(userID uuid.UUID) (string, error)
+	GenerateAccessToken(user *entity.User) (string, time.Time, error)
+	GenerateRefreshToken(userID uuid.UUID) (string, time.Time, error)
 	ValidateAccessToken(token string) (*AccessTokenClaims, error)
 	ValidateRefreshToken(token string) (*RefreshTokenClaims, error)
 }
