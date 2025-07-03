@@ -33,7 +33,7 @@ func (r *Router) SetupRoutes() *gin.Engine {
 
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
-			"status":  "ok",
+			"status":  true,
 			"message": "Service is healthy",
 		})
 	})
@@ -47,17 +47,19 @@ func (r *Router) SetupRoutes() *gin.Engine {
 			auth.POST("/refresh", r.authHandler.RefreshToken)
 
 			// Protected
-			auth.Use(r.authMiddleware.RequireAuth())
+			auth.Use(r.authMiddleware.Middleware())
 			auth.POST("/logout", r.authHandler.Logout)
 		}
 
 		users := v1.Group("/users")
-		users.Use(r.authMiddleware.RequireAuth())
+		users.Use(r.authMiddleware.Middleware())
 		{
 			users.GET("/profile", r.userHandler.GetProfile)
 			users.PUT("/profile", r.userHandler.UpdateProfile)
 			users.PUT("/change-password", r.userHandler.ChangePassword)
 			users.GET("", r.userHandler.ListUsers)
+			users.GET("/:id", r.userHandler.GetUserByID)
+			users.DELETE("/:id", r.userHandler.DeleteUser)
 		}
 	}
 

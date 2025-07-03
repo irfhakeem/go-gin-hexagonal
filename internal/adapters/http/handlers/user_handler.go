@@ -155,3 +155,48 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
 
 	response.SuccessWithMeta(c, message.SUCCESS_GET_ALL_USERS, result.Users, meta)
 }
+
+func (h *UserHandler) GetUserByID(c *gin.Context) {
+	userIDStr := c.Param("id")
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		response.Error(c, message.FAILED_INVALID_ID_FORMAT, "Invalid user ID format", 400)
+		return
+	}
+
+	result, err := h.userService.GetProfile(c.Request.Context(), userID)
+	if err != nil {
+		switch err {
+		case ports.ErrUserNotFound:
+			response.Error(c, message.FAILED_GET_USER_BY_ID, err.Error(), 404)
+		default:
+			response.Error(c, message.FAILED_INTERNAL_SERVER_ERROR, err.Error(), 500)
+		}
+		return
+	}
+
+	response.Success(c, message.SUCCESS_GET_USER_BY_ID, result, 200)
+}
+
+func (h *UserHandler) DeleteUser(c *gin.Context) {
+	userIDstr := c.Param("id")
+	userID, err := uuid.Parse(userIDstr)
+	if err != nil {
+		response.Error(c, message.FAILED_INVALID_ID_FORMAT, "Invalid user ID format", 400)
+		return
+	}
+
+	err = h.userService.DeleteUser(c.Request.Context(), userID)
+	if err != nil {
+		switch err {
+		case ports.ErrUserNotFound:
+			response.Error(c, message.FAILED_GET_USER_BY_ID, err.Error(), 404)
+		case ports.ErrDeleteUser:
+			response.Error(c, message.FAILED_DELETE_USER, err.Error(), 500)
+		default:
+			response.Error(c, message.FAILED_INTERNAL_SERVER_ERROR, err.Error(), 500)
+		}
+		return
+	}
+	response.Success(c, message.SUCCESS_DELETE_USER, nil, 204)
+}

@@ -117,3 +117,10 @@ func (s *UserService) ListUsers(ctx context.Context, req *dto.UserListRequest) (
 		TotalPages: totalPages,
 	}, nil
 }
+
+func (s *UserService) DeleteUser(ctx context.Context, userID uuid.UUID) error {
+	if err := s.userRepo.Delete(ctx, userID); err != nil {
+		return ports.ErrDeleteUser
+	}
+	return nil
+}
