@@ -1,20 +1,24 @@
 package ports
 
 import (
-	"go-gin-hexagonal/internal/domain/entity"
-	"time"
+	"context"
+
+	"go-gin-hexagonal/internal/domain/dto"
 
 	"github.com/google/uuid"
 )
 
-type PasswordHasher interface {
-	Hash(password string) (string, error)
-	Verify(hashedPassword, password string) error
+type AuthService interface {
+	Login(ctx context.Context, req *dto.LoginRequest) (*dto.LoginResponse, error)
+	Register(ctx context.Context, req *dto.RegisterRequest) error
+	RefreshToken(ctx context.Context, req *dto.RefreshTokenRequest) (*dto.RefreshTokenResponse, error)
+	Logout(ctx context.Context, userID uuid.UUID) error
 }
 
-type TokenManager interface {
-	GenerateAccessToken(user *entity.User) (string, time.Time, error)
-	GenerateRefreshToken(userID uuid.UUID) (string, time.Time, error)
-	ValidateAccessToken(token string) (*entity.AccessTokenClaims, error)
-	ValidateRefreshToken(token string) (*entity.RefreshTokenClaims, error)
+type UserService interface {
+	GetProfile(ctx context.Context, userID uuid.UUID) (*dto.UserInfo, error)
+	UpdateProfile(ctx context.Context, userID uuid.UUID, req *dto.UpdateUserRequest) (*dto.UserInfo, error)
+	ChangePassword(ctx context.Context, userID uuid.UUID, req *dto.ChangePasswordRequest) error
+	ListUsers(ctx context.Context, req *dto.UserListRequest) (*dto.UserListResponse, error)
+	DeleteUser(ctx context.Context, userID uuid.UUID) error
 }

@@ -4,7 +4,7 @@ import (
 	"context"
 	"math"
 
-	"go-gin-hexagonal/internal/application/dto"
+	"go-gin-hexagonal/internal/domain/dto"
 	"go-gin-hexagonal/internal/domain/entity"
 	"go-gin-hexagonal/internal/domain/ports"
 
@@ -19,7 +19,7 @@ type UserService struct {
 func NewUserService(
 	userRepo ports.UserRepository,
 	passwordHasher ports.PasswordHasher,
-) *UserService {
+) ports.UserService {
 	return &UserService{
 		userRepo:       userRepo,
 		passwordHasher: passwordHasher,

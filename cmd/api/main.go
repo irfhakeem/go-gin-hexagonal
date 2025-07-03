@@ -10,9 +10,9 @@ import (
 	"time"
 
 	dbAdapter "go-gin-hexagonal/internal/adapter/database"
-	router "go-gin-hexagonal/internal/adapter/http"
 	"go-gin-hexagonal/internal/adapter/http/handlers"
 	"go-gin-hexagonal/internal/adapter/http/middleware"
+	"go-gin-hexagonal/internal/adapter/http/routes"
 	"go-gin-hexagonal/internal/adapter/security"
 	"go-gin-hexagonal/internal/application/service"
 
@@ -48,14 +48,9 @@ func main() {
 	userRepo := dbAdapter.NewUserRepository(db)
 	refreshTokenRepo := dbAdapter.NewRefreshTokenRepository(db)
 
-	// Auth adapters
+	// Security adapters
 	passwordHasher := security.NewBcryptHasher()
-	tokenManager := security.NewJWTTokenManager(security.JWTConfig{
-		AccessTokenSecret:  cfg.JWT.AccessTokenSecret,
-		RefreshTokenSecret: cfg.JWT.RefreshTokenSecret,
-		AccessTokenExpiry:  cfg.JWT.AccessTokenExpiry,
-		RefreshTokenExpiry: cfg.JWT.RefreshTokenExpiry,
-	})
+	tokenManager := security.NewJWTTokenManager(cfg.JWT)
 
 	// Init services
 	authService := service.NewAuthService(userRepo, refreshTokenRepo, tokenManager, passwordHasher)
@@ -69,7 +64,7 @@ func main() {
 	authMiddleware := middleware.NewAuthMiddleware(tokenManager)
 
 	// Init router
-	appRouter := router.NewRouter(authHandler, userHandler, authMiddleware)
+	appRouter := routes.NewRouter(authHandler, userHandler, authMiddleware)
 	ginRouter := appRouter.SetupRoutes()
 
 	srv := &http.Server{

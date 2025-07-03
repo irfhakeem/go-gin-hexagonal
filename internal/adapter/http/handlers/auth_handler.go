@@ -1,21 +1,20 @@
 package handlers
 
 import (
-	"go-gin-hexagonal/internal/application/dto"
-	"go-gin-hexagonal/internal/application/service"
+	response "go-gin-hexagonal/internal/adapter/http"
+	"go-gin-hexagonal/internal/adapter/http/message"
+	"go-gin-hexagonal/internal/domain/dto"
 	"go-gin-hexagonal/internal/domain/ports"
-	"go-gin-hexagonal/pkg/message"
-	"go-gin-hexagonal/pkg/response"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
 type AuthHandler struct {
-	authService *service.AuthService
+	authService ports.AuthService
 }
 
-func NewAuthHandler(authService *service.AuthService) *AuthHandler {
+func NewAuthHandler(authService ports.AuthService) *AuthHandler {
 	return &AuthHandler{
 		authService: authService,
 	}
