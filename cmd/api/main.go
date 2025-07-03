@@ -11,9 +11,9 @@ import (
 
 	"go-gin-hexagonal/internal/adapter/auth"
 	dbAdapter "go-gin-hexagonal/internal/adapter/database"
+	router "go-gin-hexagonal/internal/adapter/http"
 	"go-gin-hexagonal/internal/adapter/http/handlers"
 	"go-gin-hexagonal/internal/adapter/http/middleware"
-	"go-gin-hexagonal/internal/adapter/http/routes"
 	"go-gin-hexagonal/internal/application/service"
 
 	"go-gin-hexagonal/pkg/config"
@@ -69,7 +69,7 @@ func main() {
 	authMiddleware := middleware.NewAuthMiddleware(tokenManager)
 
 	// Init router
-	appRouter := routes.NewRouter(authHandler, userHandler, authMiddleware)
+	appRouter := router.NewRouter(authHandler, userHandler, authMiddleware)
 	ginRouter := appRouter.SetupRoutes()
 
 	srv := &http.Server{
