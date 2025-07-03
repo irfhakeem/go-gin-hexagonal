@@ -20,7 +20,7 @@ func NewAuthMiddleware(tokenManager ports.TokenManager) *AuthMiddleware {
 	}
 }
 
-func (m *AuthMiddleware) RequireAuth() gin.HandlerFunc {
+func (m *AuthMiddleware) Middleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
