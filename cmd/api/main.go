@@ -52,13 +52,14 @@ func main() {
 	// Security adapters
 	passwordHasher := security.NewBcryptHasher()
 	tokenManager := security.NewJWTTokenManager(cfg.JWT)
+	encryptor := security.NewAESEncryptor(cfg.AES)
 
 	// Mailer adapter
 	mailerManager := mailer.NewSMTPMailer(&cfg.Mailer)
 
 	// Init services
-	authService := service.NewAuthService(userRepo, refreshTokenRepo, tokenManager, passwordHasher)
 	emailService := service.NewEmailService(mailerManager)
+	authService := service.NewAuthService(userRepo, refreshTokenRepo, tokenManager, passwordHasher, emailService, encryptor)
 	userService := service.NewUserService(userRepo, passwordHasher, emailService)
 
 	// Init Handlers

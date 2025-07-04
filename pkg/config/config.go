@@ -12,6 +12,7 @@ type Config struct {
 	Database DatabaseConfig
 	JWT      JWTConfig
 	Mailer   MailerConfig
+	AES      AESConfig
 }
 
 type ServerConfig struct {
@@ -47,6 +48,11 @@ type MailerConfig struct {
 	Password string
 }
 
+type AESConfig struct {
+	Key string
+	IV  string
+}
+
 func Load() (*Config, error) {
 	config := &Config{
 		Server: ServerConfig{
@@ -76,6 +82,10 @@ func Load() (*Config, error) {
 			Sender:   getEnv("MAILER_SENDER", "Go.Gin.Hexagonal <no-reply@testing.com>"),
 			Auth:     getEnv("MAILER_AUTH", "your-authentication-string"),
 			Password: getEnv("MAILER_PASSWORD", "your-email-password"),
+		},
+		AES: AESConfig{
+			Key: getEnv("AES_KEY", "your-aes-encryption-key"),
+			IV:  getEnv("AES_IV", "your-aes-initialization-vector"),
 		},
 	}
 

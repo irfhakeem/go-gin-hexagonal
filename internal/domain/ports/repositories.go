@@ -29,12 +29,14 @@ var (
 	ErrUnexpectedSinginMethod      = errors.New("unexpected signin method")
 	ErrInvalidClaims               = errors.New("invalid claims in token")
 	ErrInvalidInput                = errors.New("invalid input provided")
+	ErrUserNotVerified             = errors.New("user not verified")
 
 	// User
 	ErrUserNotFound      = errors.New("user not found")
 	ErrUserAlreadyExists = errors.New("user already exists")
 	ErrUpdateUser        = errors.New("failed to update user")
 	ErrDeleteUser        = errors.New("failed to delete user")
+	ErrCreateUser        = errors.New("failed to create user")
 )
 
 type UserRepository interface {
