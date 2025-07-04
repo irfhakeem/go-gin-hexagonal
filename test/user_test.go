@@ -22,14 +22,19 @@ func NewMockUserRepository() *MockUserRepository {
 	return &MockUserRepository{
 		users: map[uuid.UUID]*entity.User{
 			uuid.New(): {
-				Email:     "johndoe100@example.com",
-				Username:  "johndoe100",
-				Password:  "password123",
-				Name:      "John Doe 100",
-				IsActive:  true,
-				CreatedAt: time.Now(),
-				UpdatedAt: time.Now(),
-				DeletedAt: nil,
+				Email:    "johndoe100@example.com",
+				Username: "johndoe100",
+				Password: "password123",
+				Name:     "John Doe 100",
+				IsActive: true,
+				AuditInfo: entity.AuditInfo{
+					CreatedAt: time.Now(),
+					CreatedBy: uuid.New(),
+					UpdatedAt: time.Now(),
+					UpdatedBy: uuid.New(),
+					DeletedAt: nil,
+					IsDeleted: false,
+				},
 			},
 		},
 	}
@@ -127,15 +132,20 @@ func TestUserRepositoryIntegration(t *testing.T) {
 	userID := uuid.New()
 
 	user := &entity.User{
-		ID:        userID,
-		Email:     "johndoe@example.com",
-		Username:  "johndoe",
-		Password:  "password123",
-		Name:      "John Doe",
-		IsActive:  true,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-		DeletedAt: nil,
+		ID:       userID,
+		Email:    "johndoe@example.com",
+		Username: "johndoe",
+		Password: "password123",
+		Name:     "John Doe",
+		IsActive: true,
+		AuditInfo: entity.AuditInfo{
+			CreatedAt: time.Now(),
+			CreatedBy: uuid.New(),
+			UpdatedAt: time.Now(),
+			UpdatedBy: uuid.New(),
+			DeletedAt: nil,
+			IsDeleted: false,
+		},
 	}
 
 	ctx := context.Background()
@@ -249,21 +259,27 @@ func TestUserServiceIntegration(t *testing.T) {
 		userID := uuid.New()
 
 		user := &entity.User{
-			ID:        userID,
-			Email:     "lifecycle@example.com",
-			Username:  "lifecycle",
-			Password:  "hashedpassword",
-			Name:      "Lifecycle User",
-			IsActive:  true,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			ID:       userID,
+			Email:    "lifecycle@example.com",
+			Username: "lifecycle",
+			Password: "hashedpassword",
+			Name:     "Lifecycle User",
+			IsActive: true,
+			AuditInfo: entity.AuditInfo{
+				CreatedAt: time.Now(),
+				CreatedBy: uuid.New(),
+				UpdatedAt: time.Now(),
+				UpdatedBy: uuid.New(),
+				DeletedAt: nil,
+				IsDeleted: false,
+			},
 		}
 
 		err := mockRepo.Create(ctx, user)
 		assert.NoError(t, err)
 
 		// Read via service
-		userInfo, err := userService.GetProfile(ctx, userID)
+		userInfo, err := userService.GetUserByID(ctx, userID)
 		assert.NoError(t, err)
 		assert.Equal(t, user.Email, userInfo.Email)
 
@@ -273,7 +289,7 @@ func TestUserServiceIntegration(t *testing.T) {
 			Name: &newName,
 		}
 
-		updatedUserInfo, err := userService.UpdateProfile(ctx, userID, updateReq)
+		updatedUserInfo, err := userService.UpdateUser(ctx, userID, updateReq)
 		assert.NoError(t, err)
 		assert.Equal(t, newName, updatedUserInfo.Name)
 
@@ -293,7 +309,7 @@ func TestUserServiceIntegration(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify deletion via service
-		_, err = userService.GetProfile(ctx, userID)
+		_, err = userService.GetUserByID(ctx, userID)
 		assert.Equal(t, ports.ErrUserNotFound, err)
 	})
 }

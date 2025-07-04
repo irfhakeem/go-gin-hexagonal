@@ -2,6 +2,9 @@ package service
 
 import (
 	"context"
+	"log"
+	"strings"
+	"time"
 
 	"go-gin-hexagonal/internal/domain/dto"
 	"go-gin-hexagonal/internal/domain/entity"
@@ -15,6 +18,8 @@ type AuthService struct {
 	refreshTokenRepo ports.RefreshTokenRepository
 	tokenManager     ports.TokenManager
 	passwordHasher   ports.PasswordHasher
+	emailService     ports.EmailService
+	aesEncryptor     ports.Encryptor
 }
 
 func NewAuthService(
@@ -22,12 +27,16 @@ func NewAuthService(
 	refreshTokenRepo ports.RefreshTokenRepository,
 	tokenManager ports.TokenManager,
 	passwordHasher ports.PasswordHasher,
+	emailService ports.EmailService,
+	aesEncryptor ports.Encryptor,
 ) ports.AuthService {
 	return &AuthService{
 		userRepo:         userRepo,
 		refreshTokenRepo: refreshTokenRepo,
 		tokenManager:     tokenManager,
 		passwordHasher:   passwordHasher,
+		emailService:     emailService,
+		aesEncryptor:     aesEncryptor,
 	}
 }
 
@@ -38,7 +47,7 @@ func (s *AuthService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.Lo
 	}
 
 	if !user.IsActive {
-		return nil, ports.ErrInvalidCredentials
+		return nil, ports.ErrUserNotVerified
 	}
 
 	if err := s.passwordHasher.Verify(user.Password, req.Password); err != nil {
@@ -92,6 +101,22 @@ func (s *AuthService) Register(ctx context.Context, req *dto.RegisterRequest) er
 		IsActive: true,
 	}
 
+	plaintext := user.Email + "_" + time.Now().Add(time.Minute*5).String()
+
+	token, err := s.aesEncryptor.Encrypt(plaintext)
+	if err != nil {
+		return err
+	}
+
+	go func(email string, otp string) {
+		verifyEmailData := &dto.VerifyEmailData{
+			Token: token,
+		}
+		if err := s.emailService.SendVerifyEmail(email, verifyEmailData); err != nil {
+			log.Printf("failed to send verification email: %v", err)
+		}
+	}(req.Email, token)
+
 	return s.userRepo.Create(ctx, user)
 }
 
@@ -139,4 +164,128 @@ func (s *AuthService) RefreshToken(ctx context.Context, req *dto.RefreshTokenReq
 
 func (s *AuthService) Logout(ctx context.Context, userID uuid.UUID) error {
 	return s.refreshTokenRepo.RevokeAllByUserID(ctx, userID)
+}
+
+func (s *AuthService) RequestVerifyEmail(ctx context.Context, email string) error {
+	user, err := s.userRepo.FindByEmail(ctx, email)
+	if err != nil {
+		return ports.ErrUserNotFound
+	}
+
+	plaintext := user.Email + "_" + time.Now().Add(time.Minute*5).String()
+
+	token, err := s.aesEncryptor.Encrypt(plaintext)
+	if err != nil {
+		return err
+	}
+
+	go func(email string, otp string) {
+		verifyEmailData := &dto.VerifyEmailData{
+			Token: token,
+		}
+		if err := s.emailService.SendVerifyEmail(email, verifyEmailData); err != nil {
+			log.Printf("failed to send verification email: %v", err)
+		}
+	}(email, token)
+
+	return nil
+}
+
+func (s *AuthService) VerifyEmail(ctx context.Context, token string) error {
+	token, err := s.aesEncryptor.Decrypt(token)
+	if err != nil {
+		return err
+	}
+
+	tokenArr := strings.Split(token, "_")
+	if len(tokenArr) != 2 {
+		return ports.ErrTokenInvalid
+	}
+
+	email := tokenArr[0]
+	user, err := s.userRepo.FindByEmail(ctx, email)
+	if err != nil {
+		return ports.ErrUserNotFound
+	}
+
+	expiryStr := tokenArr[1]
+	expiryTime, err := time.Parse(time.RFC3339, expiryStr)
+	if err != nil {
+		return ports.ErrTokenInvalid
+	}
+	if time.Now().After(expiryTime) {
+		return ports.ErrTokenExpired
+	}
+
+	user.IsActive = true
+
+	if err := s.userRepo.Update(ctx, user); err != nil {
+		return ports.ErrUpdateUser
+	}
+
+	return nil
+}
+
+func (s *AuthService) RequestResetPassword(ctx context.Context, email string) error {
+	user, err := s.userRepo.FindByEmail(ctx, email)
+	if err != nil {
+		return ports.ErrUserNotFound
+	}
+
+	plaintext := user.Email + "_" + time.Now().Add(time.Minute*10).String()
+
+	token, err := s.aesEncryptor.Encrypt(plaintext)
+	if err != nil {
+		return err
+	}
+
+	go func(email string, token string) {
+		resetPasswordData := &dto.RequestResetPasswordData{
+			Token: token,
+		}
+		if err := s.emailService.SendRequestResetPassword(email, resetPasswordData); err != nil {
+			log.Printf("failed to send reset password email: %v", err)
+		}
+	}(email, token)
+
+	return nil
+}
+
+func (s *AuthService) ResetPassword(ctx context.Context, req *dto.ResetPasswordRequest) error {
+	token := req.Token
+	token, err := s.aesEncryptor.Decrypt(token)
+	if err != nil {
+		return err
+	}
+
+	tokenArr := strings.Split(token, "_")
+	if len(tokenArr) != 2 {
+		return ports.ErrTokenInvalid
+	}
+
+	user, err := s.userRepo.FindByEmail(ctx, tokenArr[0])
+	if err != nil {
+		return ports.ErrUserNotFound
+	}
+
+	expiryStr := tokenArr[1]
+	expiryTime, err := time.Parse(time.RFC3339, expiryStr)
+	if err != nil {
+		return ports.ErrTokenInvalid
+	}
+	if time.Now().After(expiryTime) {
+		return ports.ErrTokenExpired
+	}
+
+	hashedPassword, err := s.passwordHasher.Hash(req.NewPassword)
+	if err != nil {
+		return err
+	}
+
+	user.Password = hashedPassword
+	if err := s.userRepo.Update(ctx, user); err != nil {
+		return ports.ErrUpdateUser
+	}
+
+	return nil
 }

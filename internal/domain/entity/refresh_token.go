@@ -12,10 +12,7 @@ type RefreshToken struct {
 	Token     string
 	ExpiresAt time.Time
 	IsRevoked bool
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt *time.Time
+	User      User
 
-	// Relations
-	User User
+	AuditInfo
 }

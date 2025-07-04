@@ -34,7 +34,7 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 		return
 	}
 
-	result, err := h.userService.GetProfile(c.Request.Context(), userUUID)
+	result, err := h.userService.GetUserByID(c.Request.Context(), userUUID)
 	if err != nil {
 		switch err {
 		case ports.ErrUserNotFound:
@@ -87,7 +87,36 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	result, err := h.userService.UpdateProfile(c.Request.Context(), userUUID, &req)
+	result, err := h.userService.UpdateUser(c.Request.Context(), userUUID, &req)
+	if err != nil {
+		switch err {
+		case ports.ErrUserNotFound:
+			response.Error(c, message.FAILED_GET_USER_BY_ID, err.Error(), 404)
+		case ports.ErrUserAlreadyExists:
+			response.Error(c, message.FAILED_USER_ALREADY_EXISTS, err.Error(), 409)
+		default:
+			response.Error(c, message.FAILED_INTERNAL_SERVER_ERROR, err.Error(), 500)
+		}
+		return
+	}
+
+	response.Success(c, message.SUCCESS_UPDATE_USER, result, 200)
+}
+
+func (h *UserHandler) UpdateUser(c *gin.Context) {
+	userUUID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		response.Error(c, message.FAILED_INVALID_ID_FORMAT, "Invalid user ID format", 400)
+		return
+	}
+
+	var req dto.UpdateUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, message.FAILED_INVALID_REQUEST_FORMAT, err.Error(), 400)
+		return
+	}
+
+	result, err := h.userService.UpdateUser(c.Request.Context(), userUUID, &req)
 	if err != nil {
 		switch err {
 		case ports.ErrUserNotFound:
@@ -138,7 +167,7 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 	response.Success(c, message.SUCCESS_CHANGE_PASSWORD, nil, 200)
 }
 
-func (h *UserHandler) ListUsers(c *gin.Context) {
+func (h *UserHandler) GetAllUsers(c *gin.Context) {
 	var req dto.UserListRequest
 
 	pageStr := c.DefaultQuery("page", "1")
@@ -158,7 +187,7 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
 	req.PageSize = pageSize
 	req.Search = c.Query("search")
 
-	result, err := h.userService.ListUsers(c.Request.Context(), &req)
+	result, err := h.userService.GetAllUsers(c.Request.Context(), &req)
 	if err != nil {
 		response.Error(c, message.FAILED_INTERNAL_SERVER_ERROR, err.Error(), 500)
 		return
@@ -182,7 +211,7 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
 		return
 	}
 
-	result, err := h.userService.GetProfile(c.Request.Context(), userID)
+	result, err := h.userService.GetUserByID(c.Request.Context(), userID)
 	if err != nil {
 		switch err {
 		case ports.ErrUserNotFound:
