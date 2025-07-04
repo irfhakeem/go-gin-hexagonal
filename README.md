@@ -135,6 +135,13 @@ cp .env.example .env
 2. Update `.env` with your configuration:
 
 ```env
+# Server
+SERVER_HOST=localhost
+SERVER_PORT=3000
+APP_ENV=development
+SERVER_READ_TIMEOUT=10s
+SERVER_WRITE_TIMEOUT=10s
+
 # Database
 DB_HOST=localhost
 DB_PORT=5432
