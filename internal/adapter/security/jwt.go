@@ -4,7 +4,6 @@ import (
 	"errors"
 	"time"
 
-	"go-gin-hexagonal/internal/domain/dto"
 	"go-gin-hexagonal/internal/domain/entity"
 	"go-gin-hexagonal/internal/domain/ports"
 	"go-gin-hexagonal/pkg/config"
@@ -31,7 +30,7 @@ func NewJWTTokenManager(config config.JWTConfig) ports.TokenManager {
 
 func (tm *JWTTokenManager) GenerateAccessToken(user *entity.User) (string, time.Time, error) {
 	expiryDate := time.Now().Add(tm.accessTokenExpiry)
-	domainClaims := &dto.AccessTokenClaims{
+	domainClaims := &ports.AccessTokenClaims{
 		UserID:    user.ID,
 		Email:     user.Email,
 		Username:  user.Username,
@@ -62,7 +61,7 @@ func (tm *JWTTokenManager) GenerateAccessToken(user *entity.User) (string, time.
 
 func (tm *JWTTokenManager) GenerateRefreshToken(userID uuid.UUID) (string, time.Time, error) {
 	expiryDate := time.Now().Add(tm.refreshTokenExpiry)
-	domainClaims := &dto.RefreshTokenClaims{
+	domainClaims := &ports.RefreshTokenClaims{
 		UserID:    userID,
 		TokenType: "refresh",
 		ExpiresAt: expiryDate,
@@ -87,7 +86,7 @@ func (tm *JWTTokenManager) GenerateRefreshToken(userID uuid.UUID) (string, time.
 	return tokenString, expiryDate, err
 }
 
-func (tm *JWTTokenManager) ValidateAccessToken(tokenString string) (*dto.AccessTokenClaims, error) {
+func (tm *JWTTokenManager) ValidateAccessToken(tokenString string) (*ports.AccessTokenClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, ports.ErrUnexpectedSinginMethod
@@ -124,7 +123,7 @@ func (tm *JWTTokenManager) ValidateAccessToken(tokenString string) (*dto.AccessT
 		issuedAt := time.Unix(int64(claims["issued_at"].(float64)), 0)
 		notBefore := time.Unix(int64(claims["not_before"].(float64)), 0)
 
-		return &dto.AccessTokenClaims{
+		return &ports.AccessTokenClaims{
 			UserID:    userID,
 			Email:     email,
 			Username:  username,
@@ -140,7 +139,7 @@ func (tm *JWTTokenManager) ValidateAccessToken(tokenString string) (*dto.AccessT
 	return nil, ports.ErrTokenInvalid
 }
 
-func (tm *JWTTokenManager) ValidateRefreshToken(tokenString string) (*dto.RefreshTokenClaims, error) {
+func (tm *JWTTokenManager) ValidateRefreshToken(tokenString string) (*ports.RefreshTokenClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("unexpected signing method")
@@ -175,7 +174,7 @@ func (tm *JWTTokenManager) ValidateRefreshToken(tokenString string) (*dto.Refres
 		issuedAt := time.Unix(int64(claims["issued_at"].(float64)), 0)
 		notBefore := time.Unix(int64(claims["not_before"].(float64)), 0)
 
-		return &dto.RefreshTokenClaims{
+		return &ports.RefreshTokenClaims{
 			UserID:    userID,
 			TokenType: tokenType,
 			ExpiresAt: expiresAt,

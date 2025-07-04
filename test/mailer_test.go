@@ -32,6 +32,17 @@ func (m *MockEmailService) SendNewUserEmail(to string, data *dto.NewUserData) er
 	args := m.Called(to, data)
 	return args.Error(0)
 }
+
+func (m *MockEmailService) SendVerifyEmail(to string, data *dto.VerifyEmailData) error {
+	args := m.Called(to, data)
+	return args.Error(0)
+}
+
+func (m *MockEmailService) SendRequestResetPassword(to string, data *dto.RequestResetPasswordData) error {
+	args := m.Called(to, data)
+	return args.Error(0)
+}
+
 func NewMockEmailService() *MockEmailService {
 	return &MockEmailService{}
 }

@@ -28,7 +28,7 @@ func (r *UserRepository) Create(ctx context.Context, user *entity.User) error {
 
 func (r *UserRepository) FindByID(ctx context.Context, id uuid.UUID) (*entity.User, error) {
 	var user entity.User
-	err := r.db.WithContext(ctx).Where("id = ?", id).First(&user).Error
+	err := r.db.WithContext(ctx).Where("id = ? AND is_deleted = ?", id, user.IsDeleted).First(&user).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, ports.ErrUserNotFound

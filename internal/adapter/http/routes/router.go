@@ -54,12 +54,12 @@ func (r *Router) SetupRoutes() *gin.Engine {
 		users := v1.Group("/users")
 		users.Use(r.authMiddleware.Middleware())
 		{
+			users.GET("", r.userHandler.GetAllUsers)
 			users.GET("/profile", r.userHandler.GetProfile)
+			users.GET("/:id", r.userHandler.GetUserByID)
 			users.POST("", r.userHandler.CreateUser)
 			users.PUT("/profile", r.userHandler.UpdateProfile)
 			users.PUT("/change-password", r.userHandler.ChangePassword)
-			users.GET("", r.userHandler.ListUsers)
-			users.GET("/:id", r.userHandler.GetUserByID)
 			users.DELETE("/:id", r.userHandler.DeleteUser)
 		}
 	}

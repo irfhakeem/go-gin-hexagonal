@@ -43,7 +43,7 @@ func FormatUserInfo(user *entity.User) *dto.UserInfo {
 	}
 }
 
-func (s *UserService) ListUsers(ctx context.Context, req *dto.UserListRequest) (*dto.UserListResponse, error) {
+func (s *UserService) GetAllUsers(ctx context.Context, req *dto.UserListRequest) (*dto.UserListResponse, error) {
 	offset := (req.Page - 1) * req.PageSize
 	users, total, err := s.userRepo.FindAll(ctx, req.PageSize, offset)
 	if err != nil {
@@ -66,7 +66,7 @@ func (s *UserService) ListUsers(ctx context.Context, req *dto.UserListRequest) (
 	}, nil
 }
 
-func (s *UserService) GetProfile(ctx context.Context, userID uuid.UUID) (*dto.UserInfo, error) {
+func (s *UserService) GetUserByID(ctx context.Context, userID uuid.UUID) (*dto.UserInfo, error) {
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
 		return nil, ports.ErrUserNotFound
@@ -133,7 +133,7 @@ func (s *UserService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 	return FormatUserInfo(user), nil
 }
 
-func (s *UserService) UpdateProfile(ctx context.Context, userID uuid.UUID, req *dto.UpdateUserRequest) (*dto.UserInfo, error) {
+func (s *UserService) UpdateUser(ctx context.Context, userID uuid.UUID, req *dto.UpdateUserRequest) (*dto.UserInfo, error) {
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
 		return nil, ports.ErrUserNotFound
