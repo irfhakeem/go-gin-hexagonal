@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"math/rand"
 	"regexp"
 	"slices"
 	"strings"
@@ -44,4 +45,42 @@ func GenerateSlug(s string) string {
 	s = strings.Trim(s, "-")
 
 	return s
+}
+
+func GenerateUsername(name string) string {
+	name = strings.ToLower(name)
+	name = strings.TrimSpace(name)
+
+	reg := regexp.MustCompile(`[^a-z0-9\s]`)
+	name = reg.ReplaceAllString(name, "")
+
+	nameArr := strings.Split(name, " ")
+	n := len(nameArr)
+	if n > 1 {
+		name = nameArr[n-2] + nameArr[n-1][:2]
+	} else {
+		name = nameArr[0]
+	}
+
+	name = name + GenerateNumber(4, 0, 9)
+	return name
+}
+
+func GeneratePassword(length int, includeSpecialChars bool) string {
+	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	const specialChars = "!@#$%^&*()-_=+[]{}|;:,.<>?/"
+	var charset string
+
+	if includeSpecialChars {
+		charset = letters + specialChars
+	} else {
+		charset = letters
+	}
+
+	result := make([]byte, length)
+	for i := range result {
+		result[i] = charset[rand.Intn(len(charset))]
+	}
+
+	return string(result)
 }

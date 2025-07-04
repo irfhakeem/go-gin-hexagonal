@@ -48,6 +48,26 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 	response.Success(c, message.SUCCESS_GET_USER_BY_ID, result, 200)
 }
 
+func (h *UserHandler) CreateUser(c *gin.Context) {
+	req := &dto.CreateUserRequest{}
+	if err := c.ShouldBindJSON(req); err != nil {
+		response.Error(c, message.FAILED_INVALID_REQUEST_FORMAT, err.Error(), 400)
+		return
+	}
+
+	result, err := h.userService.CreateUser(c.Request.Context(), req)
+	if err != nil {
+		switch err {
+		case ports.ErrUserAlreadyExists:
+			response.Error(c, message.FAILED_USER_ALREADY_EXISTS, err.Error(), 409)
+		default:
+			response.Error(c, message.FAILED_INTERNAL_SERVER_ERROR, err.Error(), 500)
+		}
+		return
+	}
+	response.Success(c, message.SUCCESS_CREATE_USER, result, 201)
+}
+
 func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {

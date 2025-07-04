@@ -5,6 +5,7 @@ import (
 
 	"go-gin-hexagonal/internal/adapter/database/model"
 	"go-gin-hexagonal/pkg/config"
+	seeders "go-gin-hexagonal/pkg/database/seeder"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -54,4 +55,37 @@ func RunMigrations(db *gorm.DB) error {
 
 	log.Println("Database migrations completed successfully")
 	return nil
+}
+
+// TODO: Implement seeders to populate initial data
+func RunSeeders(db *gorm.DB) {
+	log.Println("Running database seeders...")
+
+	err := seeders.UserSeeder(db)
+	if err != nil {
+		log.Printf("Error seeding user data: %v", err)
+	}
+
+	log.Println("Database seeding completed successfully")
+}
+
+func RunFreshMigrations(db *gorm.DB) {
+	log.Println("Running fresh migrations...")
+
+	err := db.Migrator().DropTable(
+		&model.User{},
+		&model.RefreshToken{},
+	)
+	if err != nil {
+		log.Printf("Error dropping tables: %v", err)
+		return
+	}
+
+	err = RunMigrations(db)
+	if err != nil {
+		log.Printf("Error running migrations: %v", err)
+		return
+	}
+
+	RunSeeders(db)
 }

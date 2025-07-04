@@ -20,6 +20,9 @@ func NewRefreshTokenRepository(db *gorm.DB) ports.RefreshTokenRepository {
 }
 
 func (r *RefreshTokenRepository) Save(ctx context.Context, token *entity.RefreshToken) error {
+	if token.ID == uuid.Nil {
+		token.ID = uuid.New()
+	}
 	return r.db.WithContext(ctx).Create(token).Error
 }
 

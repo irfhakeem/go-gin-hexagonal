@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Welcome - Your New Account</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f4f4f4;
+      }
+      .container {
+        background-color: #fff;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+      .header {
+        text-align: center;
+        color: #2c3e50;
+        margin-bottom: 30px;
+      }
+      .credentials {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 5px;
+        border-left: 4px solid #007bff;
+        margin: 20px 0;
+      }
+      .credential-item {
+        margin: 10px 0;
+      }
+      .credential-label {
+        font-weight: bold;
+        color: #495057;
+      }
+      .credential-value {
+        font-family: monospace;
+        background-color: #e9ecef;
+        padding: 5px 8px;
+        border-radius: 3px;
+        display: inline-block;
+        margin-left: 10px;
+      }
+      .warning {
+        background-color: #fff3cd;
+        border: 1px solid #ffeaa7;
+        color: #856404;
+        padding: 15px;
+        border-radius: 5px;
+        margin: 20px 0;
+      }
+      .footer {
+        margin-top: 30px;
+        text-align: center;
+        color: #6c757d;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Welcome to Our Platform</h1>
+      </div>
+
+      <p>Dear, {{.UserEmail}}</p>
+
+      <p>
+        Your account has been successfully created by an administrator. Below
+        are your login credentials:
+      </p>
+
+      <div class="credentials">
+        <div class="credential-item">
+          <span class="credential-label">Username:</span>
+          <span class="credential-value">{{.Username}}</span>
+        </div>
+        <div class="credential-item">
+          <span class="credential-label">Password:</span>
+          <span class="credential-value">{{.Password}}</span>
+        </div>
+      </div>
+
+      <div class="warning">
+        <strong>Important:</strong> For security reasons, please change your
+        password after your first login.
+      </div>
+
+      <p>
+        You can now log in to your account and start using our platform. If you
+        have any questions or need assistance, please don't hesitate to contact
+        our support team.
+      </p>
+
+      <div class="footer">
+        <p>Best regards,<br />The Team</p>
+        <p>
+          <small
+            >This is an automated email. Please do not reply to this
+            message.</small
+          >
+        </p>
+      </div>
+    </div>
+  </body>
+</html>
