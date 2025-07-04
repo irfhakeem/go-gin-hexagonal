@@ -11,6 +11,7 @@ type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
 	JWT      JWTConfig
+	Mailer   MailerConfig
 }
 
 type ServerConfig struct {
@@ -38,6 +39,14 @@ type JWTConfig struct {
 	RefreshTokenExpiry time.Duration
 }
 
+type MailerConfig struct {
+	Host     string
+	Port     int
+	Sender   string
+	Auth     string
+	Password string
+}
+
 func Load() (*Config, error) {
 	config := &Config{
 		Server: ServerConfig{
@@ -60,6 +69,13 @@ func Load() (*Config, error) {
 			RefreshTokenSecret: getEnv("JWT_REFRESH_SECRET", "your-refresh-secret-key"),
 			AccessTokenExpiry:  getEnvAsDuration("JWT_ACCESS_EXPIRY", 1*time.Hour),
 			RefreshTokenExpiry: getEnvAsDuration("JWT_REFRESH_EXPIRY", 7*24*time.Hour),
+		},
+		Mailer: MailerConfig{
+			Host:     getEnv("MAILER_HOST", "smtp.example.com"),
+			Port:     getEnvAsInt("MAILER_PORT", 587),
+			Sender:   getEnv("MAILER_SENDER", "Go.Gin.Hexagonal <no-reply@testing.com>"),
+			Auth:     getEnv("MAILER_AUTH", "your-authentication-string"),
+			Password: getEnv("MAILER_PASSWORD", "your-email-password"),
 		},
 	}
 

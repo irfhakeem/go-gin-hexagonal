@@ -20,6 +20,9 @@ func NewUserRepository(db *gorm.DB) ports.UserRepository {
 }
 
 func (r *UserRepository) Create(ctx context.Context, user *entity.User) error {
+	if user.ID == uuid.Nil {
+		user.ID = uuid.New()
+	}
 	return r.db.WithContext(ctx).Create(user).Error
 }
 

@@ -236,12 +236,13 @@ func TestUserRepository_EdgeCases(t *testing.T) {
 func TestUserServiceIntegration(t *testing.T) {
 	mockRepo := NewMockUserRepository()
 	mockHasher := NewMockSecurityService()
+	mockMailer := NewMockEmailService()
 
 	// Setup mock hasher
 	mockHasher.On("Hash", mock.AnythingOfType("string")).Return("hashedpassword", nil)
 	mockHasher.On("Verify", "hashedpassword", "password123").Return(nil)
 
-	userService := service.NewUserService(mockRepo, mockHasher)
+	userService := service.NewUserService(mockRepo, mockHasher, mockMailer)
 	ctx := context.Background()
 
 	t.Run("Complete user lifecycle", func(t *testing.T) {

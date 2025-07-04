@@ -55,6 +55,7 @@ func (r *Router) SetupRoutes() *gin.Engine {
 		users.Use(r.authMiddleware.Middleware())
 		{
 			users.GET("/profile", r.userHandler.GetProfile)
+			users.POST("", r.userHandler.CreateUser)
 			users.PUT("/profile", r.userHandler.UpdateProfile)
 			users.PUT("/change-password", r.userHandler.ChangePassword)
 			users.GET("", r.userHandler.ListUsers)

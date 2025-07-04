@@ -13,6 +13,7 @@ import (
 	"go-gin-hexagonal/internal/adapter/http/handlers"
 	"go-gin-hexagonal/internal/adapter/http/middleware"
 	"go-gin-hexagonal/internal/adapter/http/routes"
+	"go-gin-hexagonal/internal/adapter/mailer"
 	"go-gin-hexagonal/internal/adapter/security"
 	"go-gin-hexagonal/internal/application/service"
 
@@ -52,9 +53,13 @@ func main() {
 	passwordHasher := security.NewBcryptHasher()
 	tokenManager := security.NewJWTTokenManager(cfg.JWT)
 
+	// Mailer adapter
+	mailerManager := mailer.NewSMTPMailer(&cfg.Mailer)
+
 	// Init services
 	authService := service.NewAuthService(userRepo, refreshTokenRepo, tokenManager, passwordHasher)
-	userService := service.NewUserService(userRepo, passwordHasher)
+	emailService := service.NewEmailService(mailerManager)
+	userService := service.NewUserService(userRepo, passwordHasher, emailService)
 
 	// Init Handlers
 	authHandler := handlers.NewAuthHandler(authService)

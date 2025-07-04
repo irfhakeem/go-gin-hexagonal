@@ -28,6 +28,7 @@ var (
 	ErrInvalidIDFormat             = errors.New("invalid ID format")
 	ErrUnexpectedSinginMethod      = errors.New("unexpected signin method")
 	ErrInvalidClaims               = errors.New("invalid claims in token")
+	ErrInvalidInput                = errors.New("invalid input provided")
 
 	// User
 	ErrUserNotFound      = errors.New("user not found")
