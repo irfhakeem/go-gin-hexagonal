@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"os"
 	"strings"
 	"time"
 
@@ -39,6 +41,12 @@ func NewAuthService(
 		aesEncryptor:     aesEncryptor,
 	}
 }
+
+var (
+	appUrl           = os.Getenv("APP_FE_URL")
+	verifyEmailUrl   = appUrl + "/verify-email?token=" + "%s"
+	resetPasswordUrl = appUrl + "/reset-password?token=" + "%s"
+)
 
 func (s *AuthService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.LoginResponse, error) {
 	user, err := s.userRepo.FindByEmail(ctx, req.Email)
@@ -110,7 +118,7 @@ func (s *AuthService) Register(ctx context.Context, req *dto.RegisterRequest) er
 
 	go func(email string, otp string) {
 		verifyEmailData := &dto.VerifyEmailData{
-			Token: token,
+			VerificationURL: fmt.Sprintf(verifyEmailUrl, token),
 		}
 		if err := s.emailService.SendVerifyEmail(email, verifyEmailData); err != nil {
 			log.Printf("failed to send verification email: %v", err)
@@ -181,7 +189,7 @@ func (s *AuthService) RequestVerifyEmail(ctx context.Context, email string) erro
 
 	go func(email string, otp string) {
 		verifyEmailData := &dto.VerifyEmailData{
-			Token: token,
+			VerificationURL: fmt.Sprintf(verifyEmailUrl, token),
 		}
 		if err := s.emailService.SendVerifyEmail(email, verifyEmailData); err != nil {
 			log.Printf("failed to send verification email: %v", err)
@@ -241,7 +249,7 @@ func (s *AuthService) RequestResetPassword(ctx context.Context, email string) er
 
 	go func(email string, token string) {
 		resetPasswordData := &dto.RequestResetPasswordData{
-			Token: token,
+			ResetLink: fmt.Sprint(resetPasswordUrl, token),
 		}
 		if err := s.emailService.SendRequestResetPassword(email, resetPasswordData); err != nil {
 			log.Printf("failed to send reset password email: %v", err)

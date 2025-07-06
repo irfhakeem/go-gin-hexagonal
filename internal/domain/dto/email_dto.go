@@ -7,10 +7,9 @@ type NewUserData struct {
 }
 
 type VerifyEmailData struct {
-	Token string
+	VerificationURL string
 }
 
 type RequestResetPasswordData struct {
-	Email string
-	Token string
+	ResetLink string
 }
