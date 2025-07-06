@@ -16,7 +16,7 @@ type RefreshToken struct {
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
-	User      User           `json:"user" gorm:"foreignKey:UserID;references:ID"`
+	User      User           `json:"user" gorm:"foreignKey:UserID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 
 	AuditInfo
 }
