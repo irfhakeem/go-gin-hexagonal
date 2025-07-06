@@ -16,9 +16,9 @@ type RefreshToken struct {
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
+	User      User           `json:"user" gorm:"foreignKey:UserID;references:ID"`
 
-	// Relations
-	User User `json:"user" gorm:"foreignKey:UserID;references:ID"`
+	AuditInfo
 }
 
 func (rt *RefreshToken) BeforeCreate(tx *gorm.DB) error {

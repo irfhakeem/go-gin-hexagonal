@@ -10,6 +10,6 @@ type VerifyEmailData struct {
 	VerificationURL string
 }
 
-type RequestResetPasswordData struct {
+type ResetPasswordData struct {
 	ResetLink string
 }

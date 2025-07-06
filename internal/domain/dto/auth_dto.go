@@ -26,8 +26,20 @@ type RefreshTokenResponse struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
+type VerifyEmailRequest struct {
+	Token string `json:"token" binding:"required"`
+}
+
+type SendVerifyEmailRequest struct {
+	Email string `json:"email" binding:"required,email" example:"email@example.com"`
+}
+
 type ResetPasswordRequest struct {
 	Token           string `json:"token" binding:"required"`
 	NewPassword     string `json:"new_password" binding:"required,min=6" example:"newpassword123"`
 	ConfirmPassword string `json:"confirm_password" binding:"required,eqfield=NewPassword" example:"newpassword123"`
+}
+
+type SendResetPasswordRequest struct {
+	Email string `json:"email" binding:"required,email" example:"email@example.com"`
 }

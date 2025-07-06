@@ -13,7 +13,7 @@ type User struct {
 	Username string    `json:"username" gorm:"unique;not null;type:varchar(50)"`
 	Password string    `json:"password" gorm:"not null;type:varchar(255)"`
 	Name     string    `json:"name" gorm:"not null;type:varchar(100)"`
-	IsActive bool      `json:"is_active" gorm:"default:true"`
+	IsActive bool      `json:"is_active" gorm:"default:false"`
 
 	AuditInfo
 }
