@@ -104,3 +104,89 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 
 	response.Success(c, message.SUCCESS_LOGOUT, nil, 200)
 }
+
+func (h *AuthHandler) VerifyEmail(c *gin.Context) {
+	var req dto.VerifyEmailRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, message.FAILED_INVALID_REQUEST_FORMAT, err.Error(), 400)
+		return
+	}
+
+	err := h.authService.VerifyEmail(c.Request.Context(), req.Token)
+	if err != nil {
+		switch err {
+		case ports.ErrUserNotFound:
+			response.Error(c, message.FAILED_USER_NOT_FOUND, err.Error(), 404)
+		default:
+			response.Error(c, message.FAILED_INTERNAL_SERVER_ERROR, err.Error(), 500)
+		}
+		return
+	}
+
+	response.Success(c, message.SUCCESS_VERIFY_USER, nil, 200)
+}
+
+func (h *AuthHandler) SendVerifyEmail(c *gin.Context) {
+	var req dto.SendVerifyEmailRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, message.FAILED_INVALID_REQUEST_FORMAT, err.Error(), 400)
+		return
+	}
+
+	err := h.authService.SendVerifyEmail(c.Request.Context(), req.Email)
+	if err != nil {
+		switch err {
+		case ports.ErrUserNotFound:
+			response.Error(c, message.FAILED_USER_NOT_FOUND, err.Error(), 404)
+		default:
+			response.Error(c, message.FAILED_INTERNAL_SERVER_ERROR, err.Error(), 500)
+		}
+		return
+	}
+
+	response.Success(c, message.SUCCESS_SENT_VERIFY_EMAIL, nil, 200)
+}
+
+func (h *AuthHandler) ResetPassword(c *gin.Context) {
+	var req dto.ResetPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, message.FAILED_INVALID_REQUEST_FORMAT, err.Error(), 400)
+		return
+	}
+
+	err := h.authService.ResetPassword(c.Request.Context(), &req)
+	if err != nil {
+		switch err {
+		case ports.ErrTokenInvalid:
+			response.Error(c, message.FAILED_TOKEN_INVALID, err.Error(), 401)
+		case ports.ErrUserNotFound:
+			response.Error(c, message.FAILED_USER_NOT_FOUND, err.Error(), 404)
+		default:
+			response.Error(c, message.FAILED_INTERNAL_SERVER_ERROR, err.Error(), 500)
+		}
+		return
+	}
+
+	response.Success(c, message.SUCCESS_RESET_PASSWORD, nil, 200)
+}
+
+func (h *AuthHandler) SendResetPassword(c *gin.Context) {
+	var req dto.SendResetPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, message.FAILED_INVALID_REQUEST_FORMAT, err.Error(), 400)
+		return
+	}
+
+	err := h.authService.SendResetPassword(c.Request.Context(), req.Email)
+	if err != nil {
+		switch err {
+		case ports.ErrUserNotFound:
+			response.Error(c, message.FAILED_USER_NOT_FOUND, err.Error(), 404)
+		default:
+			response.Error(c, message.FAILED_INTERNAL_SERVER_ERROR, err.Error(), 500)
+		}
+		return
+	}
+
+	response.Success(c, message.SUCCESS_SENT_RESET_PASSWORD, nil, 200)
+}

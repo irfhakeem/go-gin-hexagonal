@@ -57,7 +57,6 @@ func RunMigrations(db *gorm.DB) error {
 	return nil
 }
 
-// TODO: Implement seeders to populate initial data
 func RunSeeders(db *gorm.DB) {
 	log.Println("Running database seeders...")
 

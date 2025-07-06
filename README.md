@@ -154,6 +154,10 @@ JWT_SECRET=your_jwt_secret
 JWT_ACCESS_EXPIRY=1h
 JWT_REFRESH_EXPIRY=168h
 
+# AES
+AES_KEY=your_aes_key
+AES_IV=your_aes_initialization_vector
+
 # Mailer
 MAILER_HOST=smtp.gmail.com
 MAILER_PORT=587

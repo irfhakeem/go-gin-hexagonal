@@ -5,13 +5,12 @@ import (
 )
 
 type User struct {
-	ID         uuid.UUID
-	Email      string
-	Username   string
-	Password   string
-	Name       string
-	IsActive   bool
-	TrialCount int
+	ID       uuid.UUID
+	Email    string
+	Username string
+	Password string
+	Name     string
+	IsActive bool
 
 	AuditInfo
 }

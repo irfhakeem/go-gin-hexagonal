@@ -14,9 +14,9 @@ type AuthService interface {
 	RefreshToken(ctx context.Context, req *dto.RefreshTokenRequest) (*dto.RefreshTokenResponse, error)
 	Logout(ctx context.Context, userID uuid.UUID) error
 	VerifyEmail(ctx context.Context, otp string) error
-	RequestVerifyEmail(ctx context.Context, email string) error
-	RequestResetPassword(ctx context.Context, email string) error
+	SendVerifyEmail(ctx context.Context, email string) error
 	ResetPassword(ctx context.Context, req *dto.ResetPasswordRequest) error
+	SendResetPassword(ctx context.Context, email string) error
 }
 
 type UserService interface {
@@ -31,5 +31,5 @@ type UserService interface {
 type EmailService interface {
 	SendNewUserEmail(to string, data *dto.NewUserData) error
 	SendVerifyEmail(to string, data *dto.VerifyEmailData) error
-	SendRequestResetPassword(to string, data *dto.RequestResetPasswordData) error
+	SendRequestResetPassword(to string, data *dto.ResetPasswordData) error
 }

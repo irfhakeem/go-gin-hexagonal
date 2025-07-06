@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"go-gin-hexagonal/internal/domain/ports"
 	"go-gin-hexagonal/pkg/config"
+	"net/url"
 )
 
 type AESEncryptor struct {
@@ -27,20 +28,12 @@ func (e *AESEncryptor) Encrypt(plaintext string) (string, error) {
 		return "", nil
 	}
 
-	var plainTextBlock []byte
-	length := len(plaintext)
+	blockSize := aes.BlockSize
+	padding := blockSize - len(plaintext)%blockSize
+	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
+	plainTextBlock := append([]byte(plaintext), padtext...)
 
-	if length%16 != 0 {
-		extendBlock := 16 - (length % 16)
-		plainTextBlock = make([]byte, length+extendBlock)
-		copy(plainTextBlock[length:], bytes.Repeat([]byte{uint8(extendBlock)}, extendBlock))
-	} else {
-		plainTextBlock = make([]byte, length)
-	}
-
-	copy(plainTextBlock, plaintext)
 	block, err := aes.NewCipher([]byte(e.key))
-
 	if err != nil {
 		return "", err
 	}
@@ -55,20 +48,31 @@ func (e *AESEncryptor) Encrypt(plaintext string) (string, error) {
 }
 
 func (e *AESEncryptor) Decrypt(ciphertext string) (string, error) {
-	ciphertextBytes, err := base64.StdEncoding.DecodeString(ciphertext)
+	if ciphertext == "" {
+		return "", nil
+	}
 
+	decodedCiphertext, err := url.QueryUnescape(ciphertext)
+	if err != nil {
+		return "", err
+	}
+
+	ciphertextBytes, err := base64.StdEncoding.DecodeString(decodedCiphertext)
 	if err != nil {
 		return "", err
 	}
 
 	block, err := aes.NewCipher([]byte(e.key))
-
 	if err != nil {
 		return "", err
 	}
 
 	if len(ciphertextBytes)%aes.BlockSize != 0 {
-		return "", fmt.Errorf("block size cant be zero")
+		return "", fmt.Errorf("ciphertext is not a multiple of the block size")
+	}
+
+	if len(ciphertextBytes) == 0 {
+		return "", fmt.Errorf("ciphertext is empty")
 	}
 
 	mode := cipher.NewCBCDecrypter(block, []byte(e.iv))
@@ -76,6 +80,16 @@ func (e *AESEncryptor) Decrypt(ciphertext string) (string, error) {
 
 	length := len(ciphertextBytes)
 	unpadding := int(ciphertextBytes[length-1])
+
+	if unpadding > aes.BlockSize || unpadding == 0 || unpadding > length {
+		return "", fmt.Errorf("invalid padding")
+	}
+
+	for i := length - unpadding; i < length; i++ {
+		if ciphertextBytes[i] != byte(unpadding) {
+			return "", fmt.Errorf("invalid padding")
+		}
+	}
 
 	plaintext := ciphertextBytes[:(length - unpadding)]
 

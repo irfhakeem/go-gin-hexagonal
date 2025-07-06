@@ -41,7 +41,7 @@ func (s *EmailService) SendVerifyEmail(to string, data *dto.VerifyEmailData) err
 	return s.mailer.SendEmail(to, subject, body)
 }
 
-func (s *EmailService) SendRequestResetPassword(to string, data *dto.RequestResetPasswordData) error {
+func (s *EmailService) SendRequestResetPassword(to string, data *dto.ResetPasswordData) error {
 	subject := fmt.Sprintf("Reset %s Account Password", s.application)
 
 	body, err := s.mailer.LoadEmailTemplate("reset_password", data)

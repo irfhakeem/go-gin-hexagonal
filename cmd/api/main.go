@@ -16,6 +16,7 @@ import (
 	"go-gin-hexagonal/internal/adapter/mailer"
 	"go-gin-hexagonal/internal/adapter/security"
 	"go-gin-hexagonal/internal/application/service"
+	"go-gin-hexagonal/internal/domain/entity"
 
 	"go-gin-hexagonal/pkg/config"
 	"go-gin-hexagonal/pkg/database"
@@ -46,8 +47,8 @@ func main() {
 
 	// Init adapters
 	// Database adapters
-	userRepo := dbAdapter.NewUserRepository(db)
-	refreshTokenRepo := dbAdapter.NewRefreshTokenRepository(db)
+	userRepo := dbAdapter.NewUserRepository(db, dbAdapter.NewBaseRepository[entity.User](db))
+	refreshTokenRepo := dbAdapter.NewRefreshTokenRepository(db, dbAdapter.NewBaseRepository[entity.RefreshToken](db))
 
 	// Security adapters
 	passwordHasher := security.NewBcryptHasher()

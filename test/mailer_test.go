@@ -38,7 +38,7 @@ func (m *MockEmailService) SendVerifyEmail(to string, data *dto.VerifyEmailData)
 	return args.Error(0)
 }
 
-func (m *MockEmailService) SendRequestResetPassword(to string, data *dto.RequestResetPasswordData) error {
+func (m *MockEmailService) SendRequestResetPassword(to string, data *dto.ResetPasswordData) error {
 	args := m.Called(to, data)
 	return args.Error(0)
 }

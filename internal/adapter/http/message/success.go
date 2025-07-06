@@ -2,11 +2,14 @@ package message
 
 // Message
 const (
-	SUCCESS_REGISTER      = "Registration successful"
-	SUCCESS_LOGIN         = "Login successful"
-	SUCCESS_VERIFY_USER   = "success to verify user"
-	SUCCESS_REFRESH_TOKEN = "Token refreshed successfully"
-	SUCCESS_LOGOUT        = "Logout successful"
+	SUCCESS_REGISTER            = "Registration successful"
+	SUCCESS_LOGIN               = "Login successful"
+	SUCCESS_VERIFY_USER         = "success to verify user"
+	SUCCESS_REFRESH_TOKEN       = "Token refreshed successfully"
+	SUCCESS_LOGOUT              = "Logout successful"
+	SUCCESS_SENT_VERIFY_EMAIL   = "Verification email sent successfully"
+	SUCCESS_SENT_RESET_PASSWORD = "Reset password email sent successfully"
+	SUCCESS_RESET_PASSWORD      = "Password reset successfully"
 
 	SUCCESS_GET_ALL_USERS   = "Success to get all users"
 	SUCCESS_GET_USER_BY_ID  = "Success to get user by id"

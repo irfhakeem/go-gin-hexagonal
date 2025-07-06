@@ -89,12 +89,10 @@ func (s *UserService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 	for usernameExists {
 		username = utils.GenerateUsername(req.Name)
 
-		existingUser, err := s.userRepo.FindByUsername(ctx, username)
-		if err != nil && err != ports.ErrUserNotFound {
-			return nil, err
-		}
-		if existingUser == nil {
+		existingUser := s.userRepo.ExistsByUsername(ctx, username)
+		if !existingUser {
 			usernameExists = false
+			break
 		}
 	}
 

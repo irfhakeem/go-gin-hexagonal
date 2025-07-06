@@ -2,7 +2,10 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -38,6 +41,22 @@ func NewAuthService(
 		emailService:     emailService,
 		aesEncryptor:     aesEncryptor,
 	}
+}
+
+func getAppURL() string {
+	appUrl := os.Getenv("APP_FE_URL")
+	if appUrl == "" {
+		appUrl = "http://localhost:5000"
+	}
+	return appUrl
+}
+
+func getVerifyEmailURL(token string) string {
+	return fmt.Sprintf("%s/verify-email?token=%s", getAppURL(), url.QueryEscape(token))
+}
+
+func getResetPasswordURL(token string) string {
+	return fmt.Sprintf("%s/reset-password?token=%s", getAppURL(), url.QueryEscape(token))
 }
 
 func (s *AuthService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.LoginResponse, error) {
@@ -98,19 +117,19 @@ func (s *AuthService) Register(ctx context.Context, req *dto.RegisterRequest) er
 		Username: req.Username,
 		Password: hashedPassword,
 		Name:     req.Name,
-		IsActive: true,
 	}
 
-	plaintext := user.Email + "_" + time.Now().Add(time.Minute*5).String()
+	plaintext := user.Email + "_" + time.Now().Add(time.Minute*5).Format("2006-01-02 15:04:05")
 
 	token, err := s.aesEncryptor.Encrypt(plaintext)
 	if err != nil {
 		return err
 	}
 
-	go func(email string, otp string) {
+	go func(email string, token string) {
+		verifyEmailUrl := getVerifyEmailURL(token)
 		verifyEmailData := &dto.VerifyEmailData{
-			Token: token,
+			VerificationURL: verifyEmailUrl,
 		}
 		if err := s.emailService.SendVerifyEmail(email, verifyEmailData); err != nil {
 			log.Printf("failed to send verification email: %v", err)
@@ -166,22 +185,23 @@ func (s *AuthService) Logout(ctx context.Context, userID uuid.UUID) error {
 	return s.refreshTokenRepo.RevokeAllByUserID(ctx, userID)
 }
 
-func (s *AuthService) RequestVerifyEmail(ctx context.Context, email string) error {
+func (s *AuthService) SendVerifyEmail(ctx context.Context, email string) error {
 	user, err := s.userRepo.FindByEmail(ctx, email)
 	if err != nil {
 		return ports.ErrUserNotFound
 	}
 
-	plaintext := user.Email + "_" + time.Now().Add(time.Minute*5).String()
+	plaintext := user.Email + "_" + time.Now().Add(time.Minute*5).Format("2006-01-02 15:04:05")
 
 	token, err := s.aesEncryptor.Encrypt(plaintext)
 	if err != nil {
 		return err
 	}
 
-	go func(email string, otp string) {
+	go func(email string, token string) {
+		verifyEmailUrl := getVerifyEmailURL(token)
 		verifyEmailData := &dto.VerifyEmailData{
-			Token: token,
+			VerificationURL: verifyEmailUrl,
 		}
 		if err := s.emailService.SendVerifyEmail(email, verifyEmailData); err != nil {
 			log.Printf("failed to send verification email: %v", err)
@@ -209,7 +229,7 @@ func (s *AuthService) VerifyEmail(ctx context.Context, token string) error {
 	}
 
 	expiryStr := tokenArr[1]
-	expiryTime, err := time.Parse(time.RFC3339, expiryStr)
+	expiryTime, err := time.Parse("2006-01-02 15:04:05", expiryStr)
 	if err != nil {
 		return ports.ErrTokenInvalid
 	}
@@ -226,13 +246,13 @@ func (s *AuthService) VerifyEmail(ctx context.Context, token string) error {
 	return nil
 }
 
-func (s *AuthService) RequestResetPassword(ctx context.Context, email string) error {
+func (s *AuthService) SendResetPassword(ctx context.Context, email string) error {
 	user, err := s.userRepo.FindByEmail(ctx, email)
 	if err != nil {
 		return ports.ErrUserNotFound
 	}
 
-	plaintext := user.Email + "_" + time.Now().Add(time.Minute*10).String()
+	plaintext := user.Email + "_" + time.Now().Add(time.Minute*10).Format("2006-01-02 15:04:05")
 
 	token, err := s.aesEncryptor.Encrypt(plaintext)
 	if err != nil {
@@ -240,8 +260,9 @@ func (s *AuthService) RequestResetPassword(ctx context.Context, email string) er
 	}
 
 	go func(email string, token string) {
-		resetPasswordData := &dto.RequestResetPasswordData{
-			Token: token,
+		resetPasswordUrl := getResetPasswordURL(token)
+		resetPasswordData := &dto.ResetPasswordData{
+			ResetLink: resetPasswordUrl,
 		}
 		if err := s.emailService.SendRequestResetPassword(email, resetPasswordData); err != nil {
 			log.Printf("failed to send reset password email: %v", err)
@@ -269,7 +290,7 @@ func (s *AuthService) ResetPassword(ctx context.Context, req *dto.ResetPasswordR
 	}
 
 	expiryStr := tokenArr[1]
-	expiryTime, err := time.Parse(time.RFC3339, expiryStr)
+	expiryTime, err := time.Parse("2006-01-02 15:04:05", expiryStr)
 	if err != nil {
 		return ports.ErrTokenInvalid
 	}
