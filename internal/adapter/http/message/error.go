@@ -22,4 +22,5 @@ const (
 	FAILED_UPDATE_USER         = "Failed to update user"
 	FAILED_DELETE_USER         = "Failed to delete user"
 	FAILED_USER_ALREADY_EXISTS = "User already exists"
+	FAILED_USER_NOT_FOUND      = "User not found"
 )

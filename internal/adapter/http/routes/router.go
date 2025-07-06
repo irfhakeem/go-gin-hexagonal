@@ -45,6 +45,10 @@ func (r *Router) SetupRoutes() *gin.Engine {
 			auth.POST("/login", r.authHandler.Login)
 			auth.POST("/register", r.authHandler.Register)
 			auth.POST("/refresh", r.authHandler.RefreshToken)
+			auth.POST("/verify-email", r.authHandler.VerifyEmail)
+			auth.POST("/send-verify-email", r.authHandler.SendVerifyEmail)
+			auth.POST("/reset-password", r.authHandler.ResetPassword)
+			auth.POST("/send-reset-password", r.authHandler.SendResetPassword)
 
 			// Protected
 			auth.Use(r.authMiddleware.Middleware())
