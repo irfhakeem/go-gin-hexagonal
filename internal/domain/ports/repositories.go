@@ -29,7 +29,6 @@ var (
 	ErrUnexpectedSinginMethod      = errors.New("unexpected signin method")
 	ErrInvalidClaims               = errors.New("invalid claims in token")
 	ErrInvalidInput                = errors.New("invalid input provided")
-	ErrUserNotVerified             = errors.New("user not verified")
 
 	// User
 	ErrUserNotFound      = errors.New("user not found")
@@ -37,7 +36,20 @@ var (
 	ErrUpdateUser        = errors.New("failed to update user")
 	ErrDeleteUser        = errors.New("failed to delete user")
 	ErrCreateUser        = errors.New("failed to create user")
+	ErrUserNotVerified   = errors.New("user not verified")
 )
+
+type BaseRepository[T any] interface {
+	Raw(ctx context.Context, query string) ([]T, error)
+	FindAll(ctx context.Context, limit, offset int, search string, query any, args ...any) ([]T, int64, error)
+	FindByID(ctx context.Context, id uuid.UUID) (*T, error)
+	FindFirst(ctx context.Context, query any, args ...any) (*T, error)
+	Where(ctx context.Context, query any, args ...any) ([]*T, error)
+	WhereExisting(ctx context.Context, query any, args ...any) (bool, error)
+	Create(ctx context.Context, entity *T) (*T, error)
+	Update(ctx context.Context, entity *T) (*T, error)
+	Delete(ctx context.Context, id uuid.UUID) error
+}
 
 type UserRepository interface {
 	Create(ctx context.Context, user *entity.User) error

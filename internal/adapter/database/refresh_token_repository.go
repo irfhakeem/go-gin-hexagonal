@@ -12,42 +12,28 @@ import (
 )
 
 type RefreshTokenRepository struct {
-	db *gorm.DB
+	db       *gorm.DB
+	baseRepo ports.BaseRepository[entity.RefreshToken]
 }
 
-func NewRefreshTokenRepository(db *gorm.DB) ports.RefreshTokenRepository {
-	return &RefreshTokenRepository{db: db}
+func NewRefreshTokenRepository(db *gorm.DB, baseRepo ports.BaseRepository[entity.RefreshToken]) ports.RefreshTokenRepository {
+	return &RefreshTokenRepository{db: db, baseRepo: baseRepo}
 }
 
 func (r *RefreshTokenRepository) Save(ctx context.Context, token *entity.RefreshToken) error {
 	if token.ID == uuid.Nil {
 		token.ID = uuid.New()
 	}
-	return r.db.WithContext(ctx).Create(token).Error
+	_, err := r.baseRepo.Create(ctx, token)
+	return err
 }
 
 func (r *RefreshTokenRepository) FindByToken(ctx context.Context, token string) (*entity.RefreshToken, error) {
-	var refreshToken entity.RefreshToken
-	err := r.db.WithContext(ctx).
-		Where("token = ? AND is_revoked = false AND expires_at > ?", token, time.Now()).
-		First(&refreshToken).Error
-
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, ports.ErrTokenNotFound
-		}
-		return nil, err
-	}
-	return &refreshToken, nil
+	return r.baseRepo.FindFirst(ctx, "token = ? AND is_revoked = false AND expires_at > ?", token, time.Now())
 }
 
 func (r *RefreshTokenRepository) FindByUserID(ctx context.Context, userID uuid.UUID) ([]*entity.RefreshToken, error) {
-	var tokens []*entity.RefreshToken
-	err := r.db.WithContext(ctx).
-		Where("user_id = ?", userID).
-		Order("created_at DESC").
-		Find(&tokens).Error
-	return tokens, err
+	return r.baseRepo.Where(ctx, "user_id = ? AND is_revoked = false AND expires_at > ?", userID, time.Now())
 }
 
 func (r *RefreshTokenRepository) RevokeAllByUserID(ctx context.Context, userID uuid.UUID) error {
