@@ -13,8 +13,10 @@ go-gin-hexagonal/
 │   ├── adapter/
 │   │   ├── database/
 │   │   │   ├── model/
+│   │   │   │   ├── base.go
 │   │   │   │   ├── refresh_token.go
 │   │   │   │   └── user.go
+│   │   │   ├── base_repository.go
 │   │   │   ├── refresh_token_repository.go
 │   │   │   └── user_repository.go
 │   │   ├── http/
@@ -33,8 +35,11 @@ go-gin-hexagonal/
 │   │   ├── mailer/
 │   │   │   ├── smtp.go          # SMTP mailer implementation
 │   │   │   └── template/
-│   │   │       └── new_user.html # Email template
+│   │   │       ├── new_user.html
+│   │   │       ├── reset_password.html
+│   │   │       └── verify_email.html
 │   │   └── security/
+│   │       ├── aes.go           # AES encryption adapter
 │   │       ├── bcrypt.go        # Password hashing adapter
 │   │       └── jwt.go           # JWT token adapter
 │   ├── application/
@@ -49,6 +54,7 @@ go-gin-hexagonal/
 │       │   ├── token_dto.go
 │       │   └── user_dto.go
 │       ├── entity/
+│       │   ├── base.go
 │       │   ├── refresh_token.go
 │       │   └── user.go
 │       └── ports/
@@ -64,7 +70,7 @@ go-gin-hexagonal/
 │   │   │   └── user.json        # Seed data
 │   │   ├── seeder/
 │   │   │   └── user_seeder.go
-│   │   └── postgres.go
+│   │   └── gorm.go              # GORM database configuration
 │   └── utils/
 │       ├── number_utils.go
 │       └── string_utils.go
@@ -75,11 +81,17 @@ go-gin-hexagonal/
 ├── tmp/
 │   ├── build-errors.log
 │   └── main.exe
-├── .env.example
 ├── .air.toml                    # Air hot reload config
+├── .env
+├── .env.example
+├── .git/
+├── .github/
+├── .gitignore
+├── api.exe
 ├── Dockerfile
 ├── go.mod
 ├── go.sum
+├── makefile
 └── README.md
 ```
 
@@ -93,6 +105,8 @@ go-gin-hexagonal/
 - **Configuration**: Environment-based configuration management
 - **Hot Reload**: Development with Air for automatic restart
 - **Docker Support**: Containerized deployment ready
+- **Security**: AES encryption and bcrypt password hashing
+- **Base Repository**: Generic repository pattern with common operations
 
 ## Architecture Overview
 
@@ -109,12 +123,15 @@ The project includes a comprehensive email system with:
 
 - **SMTP Mailer**: Direct SMTP email sending
 - **Template Engine**: HTML email templates with data injection
-- **Email Service**: High-level email operations (welcome, password reset)
+- **Email Service**: High-level email operations (welcome, password reset, email verification)
 - **Async Sending**: Non-blocking email delivery
+- **AES Encryption**: Secure data encryption for sensitive information
 
 ### Email Templates
 
 - `new_user.html`: Welcome email for new user registration
+- `reset_password.html`: Password reset email template
+- `verify_email.html`: Email verification template
 
 ## How to Run
 
