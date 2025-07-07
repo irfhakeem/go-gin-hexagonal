@@ -100,6 +100,10 @@ func (r *BaseRepository[T]) Update(ctx context.Context, entity *T) (*T, error) {
 		return nil, err
 	}
 
+	if err := r.db.WithContext(ctx).First(entity).Error; err != nil {
+		return nil, err
+	}
+
 	return entity, nil
 }
 
