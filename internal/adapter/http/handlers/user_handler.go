@@ -168,7 +168,7 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 }
 
 func (h *UserHandler) GetAllUsers(c *gin.Context) {
-	var req dto.UserListRequest
+	var req dto.PaginationRequest
 
 	pageStr := c.DefaultQuery("page", "1")
 	pageSizeStr := c.DefaultQuery("page_size", "10")
@@ -200,7 +200,7 @@ func (h *UserHandler) GetAllUsers(c *gin.Context) {
 		TotalPages: result.TotalPages,
 	}
 
-	response.SuccessWithMeta(c, message.SUCCESS_GET_ALL_USERS, result.Users, meta)
+	response.SuccessWithMeta(c, message.SUCCESS_GET_ALL_USERS, result.Datas, meta)
 }
 
 func (h *UserHandler) GetUserByID(c *gin.Context) {

@@ -22,7 +22,7 @@ type Meta struct {
 }
 
 func Success(c *gin.Context, message string, data any, code int) {
-	c.JSON(http.StatusOK, Response{
+	c.JSON(code, Response{
 		Status:  true,
 		Message: message,
 		Data:    data,
@@ -39,7 +39,7 @@ func SuccessWithMeta(c *gin.Context, message string, data any, meta *Meta) {
 }
 
 func Error(c *gin.Context, message string, err string, code int) {
-	c.JSON(http.StatusBadRequest, Response{
+	c.JSON(code, Response{
 		Status:  false,
 		Message: message,
 		Error:   err,

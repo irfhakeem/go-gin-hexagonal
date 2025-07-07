@@ -43,7 +43,7 @@ func FormatUserInfo(user *entity.User) *dto.UserInfo {
 	}
 }
 
-func (s *UserService) GetAllUsers(ctx context.Context, req *dto.UserListRequest) (*dto.UserListResponse, error) {
+func (s *UserService) GetAllUsers(ctx context.Context, req *dto.PaginationRequest) (*dto.PaginationResponse[dto.UserInfo], error) {
 	offset := (req.Page - 1) * req.PageSize
 	users, total, err := s.userRepo.FindAll(ctx, req.PageSize, offset, req.Search)
 	if err != nil {
@@ -57,8 +57,8 @@ func (s *UserService) GetAllUsers(ctx context.Context, req *dto.UserListRequest)
 
 	totalPages := int(math.Ceil(float64(total) / float64(req.PageSize)))
 
-	return &dto.UserListResponse{
-		Users:      userInfos,
+	return &dto.PaginationResponse[dto.UserInfo]{
+		Datas:      userInfos,
 		Total:      total,
 		Page:       req.Page,
 		PageSize:   req.PageSize,

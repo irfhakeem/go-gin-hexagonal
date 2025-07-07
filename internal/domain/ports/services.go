@@ -21,7 +21,7 @@ type AuthService interface {
 
 type UserService interface {
 	GetUserByID(ctx context.Context, userID uuid.UUID) (*dto.UserInfo, error)
-	GetAllUsers(ctx context.Context, req *dto.UserListRequest) (*dto.UserListResponse, error)
+	GetAllUsers(ctx context.Context, req *dto.PaginationRequest) (*dto.PaginationResponse[dto.UserInfo], error)
 	CreateUser(ctx context.Context, req *dto.CreateUserRequest) (*dto.UserInfo, error)
 	UpdateUser(ctx context.Context, userID uuid.UUID, req *dto.UpdateUserRequest) (*dto.UserInfo, error)
 	ChangePassword(ctx context.Context, userID uuid.UUID, req *dto.ChangePasswordRequest) error
