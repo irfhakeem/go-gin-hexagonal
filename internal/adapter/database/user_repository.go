@@ -21,21 +21,6 @@ func NewUserRepository(db *gorm.DB, baseRepo ports.BaseRepository[entity.User]) 
 }
 
 func (r *UserRepository) FindAll(ctx context.Context, limit, offset int, search string) ([]*entity.User, int64, error) {
-	// var users []*entity.User
-	// var total int64
-
-	// if err := r.db.WithContext(ctx).Model(&entity.User{}).Count(&total).Error; err != nil {
-	// 	return nil, 0, err
-	// }
-
-	// err := r.db.WithContext(ctx).
-	// 	Order("created_at DESC").
-	// 	Limit(limit).
-	// 	Offset(offset).
-	// 	Find(&users).Error
-
-	// return users, total, err
-
 	return r.baseRepo.FindAll(ctx, limit, offset, "username LIKE ? OR email LIKE ?", "%"+search+"%", "%"+search+"%")
 }
 
