@@ -45,7 +45,7 @@ func FormatUserInfo(user *entity.User) *dto.UserInfo {
 
 func (s *UserService) GetAllUsers(ctx context.Context, req *dto.UserListRequest) (*dto.UserListResponse, error) {
 	offset := (req.Page - 1) * req.PageSize
-	users, total, err := s.userRepo.FindAll(ctx, req.PageSize, offset)
+	users, total, err := s.userRepo.FindAll(ctx, req.PageSize, offset, req.Search)
 	if err != nil {
 		return nil, err
 	}

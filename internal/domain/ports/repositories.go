@@ -40,8 +40,8 @@ var (
 )
 
 type BaseRepository[T any] interface {
-	Raw(ctx context.Context, query string) ([]T, error)
-	FindAll(ctx context.Context, limit, offset int, search string, query any, args ...any) ([]T, int64, error)
+	Raw(ctx context.Context, query string) ([]*T, error)
+	FindAll(ctx context.Context, limit, offset int, query any, args ...any) ([]*T, int64, error)
 	FindByID(ctx context.Context, id uuid.UUID) (*T, error)
 	FindFirst(ctx context.Context, query any, args ...any) (*T, error)
 	Where(ctx context.Context, query any, args ...any) ([]*T, error)
@@ -58,7 +58,7 @@ type UserRepository interface {
 	FindByUsername(ctx context.Context, username string) (*entity.User, error)
 	Update(ctx context.Context, user *entity.User) error
 	Delete(ctx context.Context, id uuid.UUID) error
-	FindAll(ctx context.Context, limit, offset int) ([]*entity.User, int64, error)
+	FindAll(ctx context.Context, limit, offset int, search string) ([]*entity.User, int64, error)
 	ExistsByEmail(ctx context.Context, email string) bool
 	ExistsByUsername(ctx context.Context, username string) bool
 }

@@ -16,8 +16,8 @@ func NewBaseRepository[T any](db *gorm.DB) ports.BaseRepository[T] {
 	return &BaseRepository[T]{db: db}
 }
 
-func (r *BaseRepository[T]) Raw(ctx context.Context, query string) ([]T, error) {
-	var entities []T
+func (r *BaseRepository[T]) Raw(ctx context.Context, query string) ([]*T, error) {
+	var entities []*T
 	if err := r.db.WithContext(ctx).Raw(query).Scan(&entities).Error; err != nil {
 		return nil, err
 	}
@@ -25,8 +25,8 @@ func (r *BaseRepository[T]) Raw(ctx context.Context, query string) ([]T, error) 
 	return entities, nil
 }
 
-func (r *BaseRepository[T]) FindAll(ctx context.Context, limit, offset int, search string, query any, args ...any) ([]T, int64, error) {
-	var entities []T
+func (r *BaseRepository[T]) FindAll(ctx context.Context, limit, offset int, query any, args ...any) ([]*T, int64, error) {
+	var entities []*T
 	var count int64
 
 	if limit <= 0 {

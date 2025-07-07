@@ -90,7 +90,7 @@ func (r *MockUserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func (r *MockUserRepository) FindAll(ctx context.Context, limit, offset int) ([]*entity.User, int64, error) {
+func (r *MockUserRepository) FindAll(ctx context.Context, limit, offset int, search string) ([]*entity.User, int64, error) {
 	var users []*entity.User
 	for _, user := range r.users {
 		users = append(users, user)
@@ -159,7 +159,7 @@ func TestUserRepositoryIntegration(t *testing.T) {
 	assert.Equal(t, "johndoe@example.com", retrievedUser.Email)
 
 	// List users
-	_, total, err := mockRepo.FindAll(ctx, 10, 0)
+	_, total, err := mockRepo.FindAll(ctx, 10, 0, "")
 	assert.NoError(t, err)
 	assert.GreaterOrEqual(t, total, int64(2))
 
