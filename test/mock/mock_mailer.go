@@ -1,4 +1,4 @@
-package test
+package adapter
 
 import (
 	"go-gin-hexagonal/internal/domain/dto"

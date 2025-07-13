@@ -24,13 +24,13 @@ func NewUserHandler(userService ports.UserService) *UserHandler {
 func (h *UserHandler) GetProfile(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		response.Error(c, message.FAILED_UNAUTHORIZED, "User not authenticated", 401)
+		response.Error(c, message.FAILED_UNAUTHORIZED, ports.ErrInvalidCredentials.Error(), 401)
 		return
 	}
 
 	userUUID, ok := userID.(uuid.UUID)
 	if !ok {
-		response.Error(c, message.FAILED_INVALID_ID_FORMAT, "Invalid user ID format", 400)
+		response.Error(c, message.FAILED_INVALID_ID_FORMAT, ports.ErrInvalidIDFormat.Error(), 400)
 		return
 	}
 
@@ -71,13 +71,13 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		response.Error(c, message.FAILED_UNAUTHORIZED, "User not authenticated", 401)
+		response.Error(c, message.FAILED_UNAUTHORIZED, ports.ErrInvalidCredentials.Error(), 401)
 		return
 	}
 
 	userUUID, ok := userID.(uuid.UUID)
 	if !ok {
-		response.Error(c, message.FAILED_INVALID_ID_FORMAT, "Invalid user ID format", 400)
+		response.Error(c, message.FAILED_INVALID_ID_FORMAT, ports.ErrInvalidIDFormat.Error(), 400)
 		return
 	}
 
@@ -106,7 +106,7 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 func (h *UserHandler) UpdateUser(c *gin.Context) {
 	userUUID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		response.Error(c, message.FAILED_INVALID_ID_FORMAT, "Invalid user ID format", 400)
+		response.Error(c, message.FAILED_INVALID_ID_FORMAT, ports.ErrInvalidIDFormat.Error(), 400)
 		return
 	}
 
@@ -135,13 +135,13 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 func (h *UserHandler) ChangePassword(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		response.Error(c, message.FAILED_UNAUTHORIZED, "User not authenticated", 401)
+		response.Error(c, message.FAILED_UNAUTHORIZED, ports.ErrInvalidCredentials.Error(), 401)
 		return
 	}
 
 	userUUID, ok := userID.(uuid.UUID)
 	if !ok {
-		response.Error(c, message.FAILED_INVALID_ID_FORMAT, "Invalid user ID format", 400)
+		response.Error(c, message.FAILED_INVALID_ID_FORMAT, ports.ErrInvalidIDFormat.Error(), 400)
 		return
 	}
 
@@ -207,7 +207,7 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
 	userIDStr := c.Param("id")
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
-		response.Error(c, message.FAILED_INVALID_ID_FORMAT, "Invalid user ID format", 400)
+		response.Error(c, message.FAILED_INVALID_ID_FORMAT, ports.ErrInvalidIDFormat.Error(), 400)
 		return
 	}
 
@@ -229,7 +229,7 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 	userIDstr := c.Param("id")
 	userID, err := uuid.Parse(userIDstr)
 	if err != nil {
-		response.Error(c, message.FAILED_INVALID_ID_FORMAT, "Invalid user ID format", 400)
+		response.Error(c, message.FAILED_INVALID_ID_FORMAT, ports.ErrInvalidIDFormat.Error(), 400)
 		return
 	}
 

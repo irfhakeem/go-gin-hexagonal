@@ -86,13 +86,13 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 func (h *AuthHandler) Logout(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		response.Error(c, message.FAILED_UNAUTHORIZED, "User not authenticated", 401)
+		response.Error(c, message.FAILED_UNAUTHORIZED, ports.ErrInvalidCredentials.Error(), 401)
 		return
 	}
 
 	userUUID, ok := userID.(uuid.UUID)
 	if !ok {
-		response.Error(c, message.FAILED_INVALID_ID_FORMAT, "Invalid user ID format", 400)
+		response.Error(c, message.FAILED_INVALID_ID_FORMAT, ports.ErrInvalidIDFormat.Error(), 400)
 		return
 	}
 

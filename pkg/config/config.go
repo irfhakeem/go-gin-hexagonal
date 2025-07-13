@@ -16,6 +16,7 @@ type Config struct {
 }
 
 type ServerConfig struct {
+	AppUrl       string
 	Host         string
 	Port         int
 	Environment  string
@@ -99,6 +100,10 @@ func (c *DatabaseConfig) DSN() string {
 
 func (c *ServerConfig) Address() string {
 	return fmt.Sprintf("%s:%d", c.Host, c.Port)
+}
+
+func GetAppURL() string {
+	return getEnv("APP_FE_URL", "http://localhost:5000")
 }
 
 // Helper functions

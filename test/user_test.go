@@ -6,36 +6,88 @@ import (
 	"go-gin-hexagonal/internal/domain/dto"
 	"go-gin-hexagonal/internal/domain/entity"
 	"go-gin-hexagonal/internal/domain/ports"
+	mockAdapter "go-gin-hexagonal/test/mock"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/suite"
 )
+
+const (
+	testEmail       = "johndoe100@example.com"
+	testUsername    = "johndoe100"
+	testPassword    = "password123"
+	testName        = "John Doe 100"
+	updatedEmail    = "johndoeUPDATED@example.com"
+	updatedUsername = "johndoeUPDATED"
+	updatedName     = "John Doe Updated"
+)
+
+// README:
+// CRUD = Create, Read, Update, Delete
+// FO = Find Operations
+// EO = Exists Operations
+// EC = Error Cases
+// CL = Complete Lifecycle
 
 type MockUserRepository struct {
 	users map[uuid.UUID]*entity.User
 }
 
+type UserTestSuite struct {
+	suite.Suite
+	mockRepo    *MockUserRepository
+	mockHasher  *mockAdapter.MockSecurityService
+	mockMailer  *mockAdapter.MockEmailService
+	userService ports.UserService
+	ctx         context.Context
+}
+
+func (suite *UserTestSuite) SetupTest() {
+	suite.mockRepo = NewMockUserRepository()
+	suite.mockHasher = mockAdapter.NewMockSecurityService()
+	suite.mockMailer = mockAdapter.NewMockEmailService()
+	suite.userService = service.NewUserService(suite.mockRepo, suite.mockHasher, suite.mockMailer)
+	suite.ctx = context.Background()
+
+	// Setup common mock expectations
+	suite.mockHasher.On("Hash", mock.AnythingOfType("string")).Return("hashedpassword", nil)
+	suite.mockHasher.On("Verify", "hashedpassword", testPassword).Return(nil)
+}
+
+func TestUserTestSuite(t *testing.T) {
+	suite.Run(t, new(UserTestSuite))
+}
+
+func createTestUser() *entity.User {
+	return &entity.User{
+		Email:    testEmail,
+		Username: testUsername,
+		Password: testPassword,
+		Name:     testName,
+		IsActive: true,
+		AuditInfo: entity.AuditInfo{
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+			DeletedAt: nil,
+			IsDeleted: false,
+		},
+	}
+}
+
+func createTestUserWithID(id uuid.UUID) *entity.User {
+	user := createTestUser()
+	user.ID = id
+	return user
+}
+
 func NewMockUserRepository() *MockUserRepository {
+	testUser := createTestUser()
 	return &MockUserRepository{
 		users: map[uuid.UUID]*entity.User{
-			uuid.New(): {
-				Email:    "johndoe100@example.com",
-				Username: "johndoe100",
-				Password: "password123",
-				Name:     "John Doe 100",
-				IsActive: true,
-				AuditInfo: entity.AuditInfo{
-					CreatedAt: time.Now(),
-					CreatedBy: uuid.New(),
-					UpdatedAt: time.Now(),
-					UpdatedBy: uuid.New(),
-					DeletedAt: nil,
-					IsDeleted: false,
-				},
-			},
+			uuid.New(): testUser,
 		},
 	}
 }
@@ -97,14 +149,8 @@ func (r *MockUserRepository) FindAll(ctx context.Context, limit, offset int, sea
 	}
 
 	total := int64(len(users))
-	start := offset
-	end := offset + limit
-	if start > len(users) {
-		start = len(users)
-	}
-	if end > len(users) {
-		end = len(users)
-	}
+	start := min(offset, len(users))
+	end := min(offset+limit, len(users))
 
 	return users[start:end], total, nil
 }
@@ -127,189 +173,149 @@ func (r *MockUserRepository) ExistsByUsername(ctx context.Context, username stri
 	return false
 }
 
-func TestUserRepositoryIntegration(t *testing.T) {
-	mockRepo := NewMockUserRepository()
+func (suite *UserTestSuite) assertUserEquals(expected, actual *entity.User) {
+	suite.Equal(expected.Email, actual.Email)
+	suite.Equal(expected.Username, actual.Username)
+	suite.Equal(expected.Name, actual.Name)
+}
+
+func (suite *UserTestSuite) getExistingUserID() uuid.UUID {
+	for id := range suite.mockRepo.users {
+		return id
+	}
+	return uuid.New()
+}
+
+func (suite *UserTestSuite) TestUserRepoCRUD() {
 	userID := uuid.New()
+	user := createTestUserWithID(userID)
 
-	user := &entity.User{
-		ID:       userID,
-		Email:    "johndoe@example.com",
-		Username: "johndoe",
-		Password: "password123",
-		Name:     "John Doe",
-		IsActive: true,
-		AuditInfo: entity.AuditInfo{
-			CreatedAt: time.Now(),
-			CreatedBy: uuid.New(),
-			UpdatedAt: time.Now(),
-			UpdatedBy: uuid.New(),
-			DeletedAt: nil,
-			IsDeleted: false,
-		},
-	}
+	// Create
+	suite.NoError(suite.mockRepo.Create(suite.ctx, user))
 
-	ctx := context.Background()
+	// Read
+	retrievedUser, err := suite.mockRepo.FindByID(suite.ctx, userID)
+	suite.NoError(err)
+	suite.assertUserEquals(user, retrievedUser)
 
-	// Create user
-	assert.NoError(t, mockRepo.Create(ctx, user))
-
-	// Get user by ID
-	retrievedUser, err := mockRepo.FindByID(ctx, userID)
-	assert.NoError(t, err)
-	assert.Equal(t, "johndoe@example.com", retrievedUser.Email)
-
-	// List users
-	_, total, err := mockRepo.FindAll(ctx, 10, 0, "")
-	assert.NoError(t, err)
-	assert.GreaterOrEqual(t, total, int64(2))
-
-	// Update user
-	updatedUser := &entity.User{
-		ID:       userID,
-		Email:    "johndoeUPDATED@example.com",
-		Username: "johndoeUPDATED",
-		Name:     "John Doe Updated",
-	}
-	assert.NoError(t, mockRepo.Update(ctx, updatedUser))
+	// Update
+	updatedUser := createTestUserWithID(userID)
+	updatedUser.Name = updatedName
+	suite.NoError(suite.mockRepo.Update(suite.ctx, updatedUser))
 
 	// Verify update
-	retrievedUser, err = mockRepo.FindByID(ctx, userID)
-	assert.NoError(t, err)
-	assert.Equal(t, "johndoeUPDATED@example.com", retrievedUser.Email)
+	retrievedUser, err = suite.mockRepo.FindByID(suite.ctx, userID)
+	suite.NoError(err)
+	suite.Equal(updatedName, retrievedUser.Name)
 
-	// Delete user
-	assert.NoError(t, mockRepo.Delete(ctx, userID))
+	// Delete
+	suite.NoError(suite.mockRepo.Delete(suite.ctx, userID))
 
 	// Verify deletion
-	_, err = mockRepo.FindByID(ctx, userID)
-	assert.Error(t, err)
-	assert.Equal(t, ports.ErrUserNotFound, err)
+	_, err = suite.mockRepo.FindByID(suite.ctx, userID)
+	suite.Equal(ports.ErrUserNotFound, err)
 }
 
-func TestUserRepository_EdgeCases(t *testing.T) {
-	mockRepo := NewMockUserRepository()
-	ctx := context.Background()
-
-	t.Run("Create user with existing ID should fail", func(t *testing.T) {
-		var existingID uuid.UUID
-		for id := range mockRepo.users {
-			existingID = id
-			break
-		}
-
-		user := &entity.User{
-			ID:       existingID,
-			Email:    "duplicate@example.com",
-			Username: "duplicate",
-		}
-
-		err := mockRepo.Create(ctx, user)
-		assert.Equal(t, ports.ErrUserAlreadyExists, err)
+func (suite *UserTestSuite) TestUserRepoFO() {
+	suite.Run("FindByEmail", func() {
+		user, err := suite.mockRepo.FindByEmail(suite.ctx, testEmail)
+		suite.NoError(err)
+		suite.Equal(testEmail, user.Email)
 	})
 
-	t.Run("Get non-existent user should fail", func(t *testing.T) {
-		nonExistentID := uuid.New()
-		_, err := mockRepo.FindByID(ctx, nonExistentID)
-		assert.Equal(t, ports.ErrUserNotFound, err)
+	suite.Run("FindByUsername", func() {
+		user, err := suite.mockRepo.FindByUsername(suite.ctx, testUsername)
+		suite.NoError(err)
+		suite.Equal(testUsername, user.Username)
 	})
 
-	t.Run("Update non-existent user should fail", func(t *testing.T) {
-		user := &entity.User{
-			ID:    uuid.New(),
-			Email: "test@example.com",
-		}
-		err := mockRepo.Update(ctx, user)
-		assert.Equal(t, ports.ErrUserNotFound, err)
-	})
-
-	t.Run("Delete non-existent user should fail", func(t *testing.T) {
-		err := mockRepo.Delete(ctx, uuid.New())
-		assert.Equal(t, ports.ErrUserNotFound, err)
-	})
-
-	t.Run("Find user by email", func(t *testing.T) {
-		user, err := mockRepo.FindByEmail(ctx, "johndoe100@example.com")
-		assert.NoError(t, err)
-		assert.Equal(t, "johndoe100@example.com", user.Email)
-	})
-
-	t.Run("Check if email exists", func(t *testing.T) {
-		exists := mockRepo.ExistsByEmail(ctx, "johndoe100@example.com")
-		assert.True(t, exists)
-
-		exists = mockRepo.ExistsByEmail(ctx, "nonexistent@example.com")
-		assert.False(t, exists)
+	suite.Run("FindAll", func() {
+		users, total, err := suite.mockRepo.FindAll(suite.ctx, 10, 0, "")
+		suite.NoError(err)
+		suite.GreaterOrEqual(total, int64(1))
+		suite.LessOrEqual(len(users), 10)
 	})
 }
 
-// Integration Tests
-func TestUserServiceIntegration(t *testing.T) {
-	mockRepo := NewMockUserRepository()
-	mockHasher := NewMockSecurityService()
-	mockMailer := NewMockEmailService()
+func (suite *UserTestSuite) TestUserRepoEO() {
+	suite.Run("ExistsByEmail", func() {
+		exists := suite.mockRepo.ExistsByEmail(suite.ctx, testEmail)
+		suite.True(exists)
 
-	// Setup mock hasher
-	mockHasher.On("Hash", mock.AnythingOfType("string")).Return("hashedpassword", nil)
-	mockHasher.On("Verify", "hashedpassword", "password123").Return(nil)
-
-	userService := service.NewUserService(mockRepo, mockHasher, mockMailer)
-	ctx := context.Background()
-
-	t.Run("Complete user lifecycle", func(t *testing.T) {
-		userID := uuid.New()
-
-		user := &entity.User{
-			ID:       userID,
-			Email:    "lifecycle@example.com",
-			Username: "lifecycle",
-			Password: "hashedpassword",
-			Name:     "Lifecycle User",
-			IsActive: true,
-			AuditInfo: entity.AuditInfo{
-				CreatedAt: time.Now(),
-				CreatedBy: uuid.New(),
-				UpdatedAt: time.Now(),
-				UpdatedBy: uuid.New(),
-				DeletedAt: nil,
-				IsDeleted: false,
-			},
-		}
-
-		err := mockRepo.Create(ctx, user)
-		assert.NoError(t, err)
-
-		// Read via service
-		userInfo, err := userService.GetUserByID(ctx, userID)
-		assert.NoError(t, err)
-		assert.Equal(t, user.Email, userInfo.Email)
-
-		// Update via service
-		newName := "Updated Lifecycle User"
-		updateReq := &dto.UpdateUserRequest{
-			Name: &newName,
-		}
-
-		updatedUserInfo, err := userService.UpdateUser(ctx, userID, updateReq)
-		assert.NoError(t, err)
-		assert.Equal(t, newName, updatedUserInfo.Name)
-
-		// Change password via service
-		changePasswordReq := &dto.ChangePasswordRequest{
-			CurrentPassword: "password123",
-			NewPassword:     "newpassword123",
-		}
-
-		mockHasher.On("Hash", "newpassword123").Return("newhashedpassword", nil)
-
-		err = userService.ChangePassword(ctx, userID, changePasswordReq)
-		assert.NoError(t, err)
-
-		// Delete via service
-		err = userService.DeleteUser(ctx, userID)
-		assert.NoError(t, err)
-
-		// Verify deletion via service
-		_, err = userService.GetUserByID(ctx, userID)
-		assert.Equal(t, ports.ErrUserNotFound, err)
+		exists = suite.mockRepo.ExistsByEmail(suite.ctx, "nonexistent@example.com")
+		suite.False(exists)
 	})
+
+	suite.Run("ExistsByUsername", func() {
+		exists := suite.mockRepo.ExistsByUsername(suite.ctx, testUsername)
+		suite.True(exists)
+
+		exists = suite.mockRepo.ExistsByUsername(suite.ctx, "nonexistentuser")
+		suite.False(exists)
+	})
+}
+
+func (suite *UserTestSuite) TestUserRepoEC() {
+	suite.Run("CreateDuplicate", func() {
+		existingID := suite.getExistingUserID()
+		user := createTestUserWithID(existingID)
+		err := suite.mockRepo.Create(suite.ctx, user)
+		suite.Equal(ports.ErrUserAlreadyExists, err)
+	})
+
+	suite.Run("FindNonExistent", func() {
+		_, err := suite.mockRepo.FindByID(suite.ctx, uuid.New())
+		suite.Equal(ports.ErrUserNotFound, err)
+	})
+
+	suite.Run("UpdateNonExistent", func() {
+		user := createTestUserWithID(uuid.New())
+		err := suite.mockRepo.Update(suite.ctx, user)
+		suite.Equal(ports.ErrUserNotFound, err)
+	})
+
+	suite.Run("DeleteNonExistent", func() {
+		err := suite.mockRepo.Delete(suite.ctx, uuid.New())
+		suite.Equal(ports.ErrUserNotFound, err)
+	})
+}
+
+func (suite *UserTestSuite) TestUserServiceCL() {
+	userID := uuid.New()
+	user := createTestUserWithID(userID)
+	user.Password = "hashedpassword"
+
+	// Create
+	suite.NoError(suite.mockRepo.Create(suite.ctx, user))
+
+	// Read
+	userInfo, err := suite.userService.GetUserByID(suite.ctx, userID)
+	suite.NoError(err)
+	suite.Equal(user.Email, userInfo.Email)
+
+	// Update
+	newName := "Updated Lifecycle User"
+	updateReq := &dto.UpdateUserRequest{Name: &newName}
+
+	updatedUserInfo, err := suite.userService.UpdateUser(suite.ctx, userID, updateReq)
+	suite.NoError(err)
+	suite.Equal(newName, updatedUserInfo.Name)
+
+	// Change password
+	suite.mockHasher.On("Hash", "newpassword123").Return("newhashedpassword", nil)
+	changePasswordReq := &dto.ChangePasswordRequest{
+		CurrentPassword: testPassword,
+		NewPassword:     "newpassword123",
+	}
+
+	err = suite.userService.ChangePassword(suite.ctx, userID, changePasswordReq)
+	suite.NoError(err)
+
+	// Delete
+	err = suite.userService.DeleteUser(suite.ctx, userID)
+	suite.NoError(err)
+
+	// Verify deletion
+	_, err = suite.userService.GetUserByID(suite.ctx, userID)
+	suite.Equal(ports.ErrUserNotFound, err)
 }

@@ -1,4 +1,4 @@
-package test
+package adapter
 
 import "github.com/stretchr/testify/mock"
 

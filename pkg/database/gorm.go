@@ -2,6 +2,7 @@ package database
 
 import (
 	"log"
+	"strings"
 
 	"go-gin-hexagonal/internal/adapter/database/model"
 	"go-gin-hexagonal/pkg/config"
@@ -10,6 +11,24 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+)
+
+var (
+	// Enums
+	enums = map[string][]string{
+		// Example:
+		// "gender": {
+		// 	"Male",
+		// 	"Female",
+		// 	"Prefer not to say",
+		// },
+	}
+
+	// Models
+	models = []any{
+		&model.User{},
+		&model.RefreshToken{},
+	}
 )
 
 func NewPostgresConnection(cfg *config.DatabaseConfig) (*gorm.DB, error) {
@@ -44,9 +63,19 @@ func NewPostgresConnection(cfg *config.DatabaseConfig) (*gorm.DB, error) {
 func RunMigrations(db *gorm.DB) error {
 	log.Println("Running database migrations...")
 
+	for name, values := range enums {
+		quotedValues := make([]string, len(values))
+		for i, value := range values {
+			quotedValues[i] = "'" + value + "'"
+		}
+		if err := db.Exec("CREATE TYPE " + name + " AS ENUM (" + strings.Join(quotedValues, ", ") + ")").Error; err != nil {
+			log.Print(err)
+			return err
+		}
+	}
+
 	err := db.AutoMigrate(
-		&model.User{},
-		&model.RefreshToken{},
+		models...,
 	)
 
 	if err != nil {
@@ -72,12 +101,19 @@ func RunFreshMigrations(db *gorm.DB) {
 	log.Println("Running fresh migrations...")
 
 	err := db.Migrator().DropTable(
-		&model.User{},
-		&model.RefreshToken{},
+		models...,
 	)
+
 	if err != nil {
 		log.Printf("Error dropping tables: %v", err)
 		return
+	}
+
+	for name := range enums {
+		if err := db.Exec("DROP TYPE IF EXISTS " + name).Error; err != nil {
+			log.Print(err)
+			return
+		}
 	}
 
 	err = RunMigrations(db)

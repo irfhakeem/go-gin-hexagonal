@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"log"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 
 	"go-gin-hexagonal/internal/domain/dto"
 	"go-gin-hexagonal/internal/domain/entity"
 	"go-gin-hexagonal/internal/domain/ports"
+	"go-gin-hexagonal/pkg/config"
+	"go-gin-hexagonal/pkg/utils"
 
 	"github.com/google/uuid"
 )
@@ -43,20 +44,12 @@ func NewAuthService(
 	}
 }
 
-func getAppURL() string {
-	appUrl := os.Getenv("APP_FE_URL")
-	if appUrl == "" {
-		appUrl = "http://localhost:5000"
-	}
-	return appUrl
-}
-
 func getVerifyEmailURL(token string) string {
-	return fmt.Sprintf("%s/verify-email?token=%s", getAppURL(), url.QueryEscape(token))
+	return fmt.Sprintf("%s/verify-email?token=%s", config.GetAppURL(), url.QueryEscape(token))
 }
 
 func getResetPasswordURL(token string) string {
-	return fmt.Sprintf("%s/reset-password?token=%s", getAppURL(), url.QueryEscape(token))
+	return fmt.Sprintf("%s/reset-password?token=%s", config.GetAppURL(), url.QueryEscape(token))
 }
 
 func (s *AuthService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.LoginResponse, error) {
@@ -119,7 +112,7 @@ func (s *AuthService) Register(ctx context.Context, req *dto.RegisterRequest) er
 		Name:     req.Name,
 	}
 
-	plaintext := user.Email + "_" + time.Now().Add(time.Minute*5).Format("2006-01-02 15:04:05")
+	plaintext := user.Email + "_" + utils.AddToCurrentTime(5*time.Minute)
 
 	token, err := s.aesEncryptor.Encrypt(plaintext)
 	if err != nil {
@@ -191,7 +184,7 @@ func (s *AuthService) SendVerifyEmail(ctx context.Context, email string) error {
 		return ports.ErrUserNotFound
 	}
 
-	plaintext := user.Email + "_" + time.Now().Add(time.Minute*5).Format("2006-01-02 15:04:05")
+	plaintext := user.Email + "_" + utils.AddToCurrentTime(5*time.Minute)
 
 	token, err := s.aesEncryptor.Encrypt(plaintext)
 	if err != nil {
@@ -229,7 +222,7 @@ func (s *AuthService) VerifyEmail(ctx context.Context, token string) error {
 	}
 
 	expiryStr := tokenArr[1]
-	expiryTime, err := time.Parse("2006-01-02 15:04:05", expiryStr)
+	expiryTime, err := utils.ParseTime(expiryStr)
 	if err != nil {
 		return ports.ErrTokenInvalid
 	}
@@ -252,7 +245,7 @@ func (s *AuthService) SendResetPassword(ctx context.Context, email string) error
 		return ports.ErrUserNotFound
 	}
 
-	plaintext := user.Email + "_" + time.Now().Add(time.Minute*10).Format("2006-01-02 15:04:05")
+	plaintext := user.Email + "_" + utils.AddToCurrentTime(15*time.Minute)
 
 	token, err := s.aesEncryptor.Encrypt(plaintext)
 	if err != nil {
@@ -290,7 +283,7 @@ func (s *AuthService) ResetPassword(ctx context.Context, req *dto.ResetPasswordR
 	}
 
 	expiryStr := tokenArr[1]
-	expiryTime, err := time.Parse("2006-01-02 15:04:05", expiryStr)
+	expiryTime, err := utils.ParseTime(expiryStr)
 	if err != nil {
 		return ports.ErrTokenInvalid
 	}
