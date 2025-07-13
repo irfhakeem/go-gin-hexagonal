@@ -48,3 +48,7 @@ temp/
 
 # documentation
 docs/
+
+# sonarqube
+.scannerwork
+sonar-project.properties

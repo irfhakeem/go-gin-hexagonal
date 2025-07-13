@@ -28,16 +28,15 @@ func main() {
 		log.Fatal("Failed to connect to database:", err)
 	}
 
-	// Run migrations
-	if err := database.RunMigrations(db); err != nil {
-		log.Fatal("Failed to run migrations:", err)
-	}
-
-	if len(args) > 1 && args[1] == "--seed" {
+	switch args[1] {
+	case "--migrate":
+		database.RunMigrations(db)
+	case "--seed":
 		database.RunSeeders(db)
-	}
-
-	if len(args) > 1 && args[1] == "--fresh" {
+	case "--fresh":
 		database.RunFreshMigrations(db)
+	default:
+		log.Println("Unknown command. Use --migrate, --seed, or --fresh.")
+		return
 	}
 }
