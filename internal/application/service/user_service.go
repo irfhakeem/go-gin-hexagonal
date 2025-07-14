@@ -118,7 +118,6 @@ func (s *UserService) CreateUser(ctx context.Context, req *dto.CreateUserRequest
 	go func(email string, username string, password string) {
 		newUserData := &dto.NewUserData{
 			UserEmail: email,
-			Username:  username,
 			Password:  password,
 		}
 
