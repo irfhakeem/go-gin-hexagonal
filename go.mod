@@ -14,7 +14,11 @@ require (
 	gorm.io/gorm v1.30.0
 )
 
-require gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
+require (
+	github.com/gorilla/csrf v1.7.3 // indirect
+	github.com/gorilla/securecookie v1.1.2 // indirect
+	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
+)
 
 require (
 	github.com/bytedance/sonic v1.13.3 // indirect

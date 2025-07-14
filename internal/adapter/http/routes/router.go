@@ -5,6 +5,7 @@ import (
 	"go-gin-hexagonal/internal/adapter/http/middleware"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/csrf"
 )
 
 type Router struct {
@@ -24,12 +25,12 @@ func NewRouter(
 		authMiddleware: authMiddleware,
 	}
 }
-
 func (r *Router) SetupRoutes() *gin.Engine {
 	router := gin.Default()
 	router.Use(gin.Recovery())
 	router.Use(gin.Logger())
 	router.Use(middleware.CORSMiddleware())
+	router.Use(middleware.CSRFMiddleware())
 
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
@@ -38,21 +39,31 @@ func (r *Router) SetupRoutes() *gin.Engine {
 		})
 	})
 
-	v1 := router.Group("/api")
+	router.GET("/csrf-token", r.authMiddleware.Middleware(), func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status":  true,
+			"message": "CSRF token retrieved successfully",
+			"data":    csrf.Token(c.Request),
+		})
+	})
+
+	v1 := router.Group("/api/v1")
 	{
 		auth := v1.Group("/auth")
 		{
 			auth.POST("/login", r.authHandler.Login)
 			auth.POST("/register", r.authHandler.Register)
-			auth.POST("/refresh", r.authHandler.RefreshToken)
 			auth.POST("/verify-email", r.authHandler.VerifyEmail)
 			auth.POST("/send-verify-email", r.authHandler.SendVerifyEmail)
 			auth.POST("/reset-password", r.authHandler.ResetPassword)
 			auth.POST("/send-reset-password", r.authHandler.SendResetPassword)
 
-			// Protected
-			auth.Use(r.authMiddleware.Middleware())
-			auth.POST("/logout", r.authHandler.Logout)
+			authProtected := auth.Group("")
+			authProtected.Use(r.authMiddleware.Middleware())
+			{
+				authProtected.POST("/refresh", r.authHandler.RefreshToken)
+				authProtected.POST("/logout", r.authHandler.Logout)
+			}
 		}
 
 		users := v1.Group("/users")
