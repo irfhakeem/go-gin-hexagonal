@@ -30,8 +30,10 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	result, err := h.authService.Login(c.Request.Context(), &req)
 	if err != nil {
 		switch err {
-		case ports.ErrInvalidCredentials:
-			response.Error(c, message.FAILED_LOGIN_USER, err.Error(), 401)
+		case ports.ErrPasswordMismatch:
+			response.Error(c, message.FAILED_PASSWORD_INCORRECT, err.Error(), 400)
+		case ports.ErrUserNotFound:
+			response.Error(c, message.FAILED_USER_NOT_FOUND, err.Error(), 404)
 		default:
 			response.Error(c, message.FAILED_INTERNAL_SERVER_ERROR, err.Error(), 500)
 		}

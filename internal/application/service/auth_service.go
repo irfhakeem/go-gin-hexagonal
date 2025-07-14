@@ -55,7 +55,7 @@ func getResetPasswordURL(token string) string {
 func (s *AuthService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.LoginResponse, error) {
 	user, err := s.userRepo.FindByEmail(ctx, req.Email)
 	if err != nil {
-		return nil, ports.ErrInvalidCredentials
+		return nil, ports.ErrUserNotFound
 	}
 
 	if !user.IsActive {
@@ -63,7 +63,7 @@ func (s *AuthService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.Lo
 	}
 
 	if err := s.passwordHasher.Verify(user.Password, req.Password); err != nil {
-		return nil, ports.ErrInvalidCredentials
+		return nil, ports.ErrPasswordMismatch
 	}
 
 	accessToken, _, err := s.tokenManager.GenerateAccessToken(user)
