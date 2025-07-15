@@ -13,6 +13,7 @@ type Config struct {
 	JWT      JWTConfig
 	Mailer   MailerConfig
 	AES      AESConfig
+	Redis    RedisConfig
 }
 
 type ServerConfig struct {
@@ -54,6 +55,14 @@ type AESConfig struct {
 	IV  string
 }
 
+type RedisConfig struct {
+	Address  string
+	Username string
+	Password string
+	Database int
+	Protocol int
+}
+
 func Load() (*Config, error) {
 	config := &Config{
 		Server: ServerConfig{
@@ -87,6 +96,13 @@ func Load() (*Config, error) {
 		AES: AESConfig{
 			Key: getEnv("AES_KEY", "your-aes-encryption-key"),
 			IV:  getEnv("AES_IV", "your-aes-initialization-vector"),
+		},
+		Redis: RedisConfig{
+			Address:  getEnv("REDIS_ADDRESS", "localhost:6379"),
+			Username: getEnv("REDIS_USERNAME", "default"),
+			Password: getEnv("REDIS_PASSWORD", ""),
+			Database: getEnvAsInt("REDIS_DATABASE", 0),
+			Protocol: getEnvAsInt("REDIS_PROTOCOL", 0),
 		},
 	}
 
