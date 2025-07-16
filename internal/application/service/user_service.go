@@ -4,6 +4,8 @@ import (
 	"context"
 	"log"
 	"math"
+	"strconv"
+	"time"
 
 	"go-gin-hexagonal/internal/domain/dto"
 	"go-gin-hexagonal/internal/domain/entity"
@@ -17,17 +19,20 @@ type UserService struct {
 	userRepo       ports.UserRepository
 	passwordHasher ports.PasswordHasher
 	emailService   ports.EmailService
+	redisCacher    ports.CacheManager
 }
 
 func NewUserService(
 	userRepo ports.UserRepository,
 	passwordHasher ports.PasswordHasher,
 	emailService ports.EmailService,
+	redisCacher ports.CacheManager,
 ) ports.UserService {
 	return &UserService{
 		userRepo:       userRepo,
 		passwordHasher: passwordHasher,
 		emailService:   emailService,
+		redisCacher:    redisCacher,
 	}
 }
 
@@ -44,6 +49,13 @@ func FormatUserInfo(user *entity.User) *dto.UserInfo {
 }
 
 func (s *UserService) GetAllUsers(ctx context.Context, req *dto.PaginationRequest) (*dto.PaginationResponse[dto.UserInfo], error) {
+	cacheKey := "users:page:" + strconv.Itoa(req.Page) + ":size:" + strconv.Itoa(req.PageSize) + ":search:" + req.Search
+	var cachedUsers dto.PaginationResponse[dto.UserInfo]
+	err := s.redisCacher.GetJSON(ctx, cacheKey, &cachedUsers)
+	if err == nil && len(cachedUsers.Datas) > 0 {
+		return &cachedUsers, nil
+	}
+
 	offset := (req.Page - 1) * req.PageSize
 	users, total, err := s.userRepo.FindAll(ctx, req.PageSize, offset, req.Search)
 	if err != nil {
@@ -67,12 +79,26 @@ func (s *UserService) GetAllUsers(ctx context.Context, req *dto.PaginationReques
 }
 
 func (s *UserService) GetUserByID(ctx context.Context, userID uuid.UUID) (*dto.UserInfo, error) {
+	cacheKey := "user:" + userID.String()
+	var cachedUser dto.UserInfo
+	err := s.redisCacher.GetJSON(ctx, cacheKey, &cachedUser)
+	if err == nil && cachedUser.ID != uuid.Nil {
+		return &cachedUser, nil
+	}
+
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
 		return nil, ports.ErrUserNotFound
 	}
 
-	return FormatUserInfo(user), nil
+	result := FormatUserInfo(user)
+
+	err = s.redisCacher.SetJSON(ctx, cacheKey, result, 5*time.Minute)
+	if err != nil {
+		log.Printf("failed to cache user %s: %v", userID, err)
+	}
+
+	return result, nil
 }
 
 func (s *UserService) CreateUser(ctx context.Context, req *dto.CreateUserRequest) (*dto.UserInfo, error) {

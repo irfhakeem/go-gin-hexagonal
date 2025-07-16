@@ -10,8 +10,8 @@ type MockMailerManager struct {
 	mock.Mock
 }
 
-func (m *MockMailerManager) LoadEmailTemplate(templateName string) (string, error) {
-	args := m.Called(templateName)
+func (m *MockMailerManager) LoadEmailTemplate(templateName string, data any) (string, error) {
+	args := m.Called(templateName, data)
 	return args.String(0), args.Error(1)
 }
 

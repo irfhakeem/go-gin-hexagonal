@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	cacheAdapter "go-gin-hexagonal/internal/adapter/cache"
 	dbAdapter "go-gin-hexagonal/internal/adapter/database"
 	"go-gin-hexagonal/internal/adapter/http/handlers"
 	"go-gin-hexagonal/internal/adapter/http/middleware"
@@ -18,6 +19,7 @@ import (
 	"go-gin-hexagonal/internal/application/service"
 	"go-gin-hexagonal/internal/domain/entity"
 
+	"go-gin-hexagonal/pkg/cache"
 	"go-gin-hexagonal/pkg/config"
 	"go-gin-hexagonal/pkg/database"
 
@@ -45,6 +47,9 @@ func main() {
 		log.Fatal("Failed to connect to database:", err)
 	}
 
+	redisClient := cache.NewRedisConnection(&cfg.Redis)
+	defer cache.CloseRedisConnection(redisClient)
+
 	// Init adapters
 	// Database adapters
 	userRepo := dbAdapter.NewUserRepository(db, dbAdapter.NewBaseRepository[entity.User](db))
@@ -58,10 +63,13 @@ func main() {
 	// Mailer adapter
 	mailerManager := mailer.NewSMTPMailer(&cfg.Mailer)
 
+	// Redis cache adapter
+	redisCacher := cacheAdapter.NewRedisCacher(redisClient)
+
 	// Init services
 	emailService := service.NewEmailService(mailerManager)
 	authService := service.NewAuthService(userRepo, refreshTokenRepo, tokenManager, passwordHasher, emailService, encryptor)
-	userService := service.NewUserService(userRepo, passwordHasher, emailService)
+	userService := service.NewUserService(userRepo, passwordHasher, emailService, redisCacher)
 
 	// Init Handlers
 	authHandler := handlers.NewAuthHandler(authService)

@@ -60,7 +60,6 @@ type RedisConfig struct {
 	Username string
 	Password string
 	Database int
-	Protocol int
 }
 
 func Load() (*Config, error) {
@@ -102,7 +101,6 @@ func Load() (*Config, error) {
 			Username: getEnv("REDIS_USERNAME", "default"),
 			Password: getEnv("REDIS_PASSWORD", ""),
 			Database: getEnvAsInt("REDIS_DATABASE", 0),
-			Protocol: getEnvAsInt("REDIS_PROTOCOL", 0),
 		},
 	}
 

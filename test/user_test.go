@@ -2,6 +2,7 @@ package test
 
 import (
 	"context"
+	"fmt"
 	"go-gin-hexagonal/internal/application/service"
 	"go-gin-hexagonal/internal/domain/dto"
 	"go-gin-hexagonal/internal/domain/entity"
@@ -41,6 +42,7 @@ type UserTestSuite struct {
 	mockRepo    *MockUserRepository
 	mockHasher  *mockAdapter.MockSecurityService
 	mockMailer  *mockAdapter.MockEmailService
+	mockCacher  *mockAdapter.MockCacherService
 	userService ports.UserService
 	ctx         context.Context
 }
@@ -49,7 +51,8 @@ func (suite *UserTestSuite) SetupTest() {
 	suite.mockRepo = NewMockUserRepository()
 	suite.mockHasher = mockAdapter.NewMockSecurityService()
 	suite.mockMailer = mockAdapter.NewMockEmailService()
-	suite.userService = service.NewUserService(suite.mockRepo, suite.mockHasher, suite.mockMailer)
+	suite.mockCacher = mockAdapter.NewMockCacherService()
+	suite.userService = service.NewUserService(suite.mockRepo, suite.mockHasher, suite.mockMailer, suite.mockCacher)
 	suite.ctx = context.Background()
 
 	// Setup common mock expectations
@@ -288,6 +291,13 @@ func (suite *UserTestSuite) TestUserServiceCL() {
 	// Create
 	suite.NoError(suite.mockRepo.Create(suite.ctx, user))
 
+	// Setup cache expectations for GetUserByID
+	cacheKey := "user:" + userID.String()
+
+	// First call - cache miss (GetJSON returns error), then cache the result (SetJSON)
+	suite.mockCacher.On("GetJSON", suite.ctx, cacheKey, mock.AnythingOfType("*dto.UserInfo")).Return(fmt.Errorf("cache miss"))
+	suite.mockCacher.On("SetJSON", suite.ctx, cacheKey, mock.AnythingOfType("*dto.UserInfo"), mock.AnythingOfType("time.Duration")).Return(nil)
+
 	// Read
 	userInfo, err := suite.userService.GetUserByID(suite.ctx, userID)
 	suite.NoError(err)
@@ -314,6 +324,9 @@ func (suite *UserTestSuite) TestUserServiceCL() {
 	// Delete
 	err = suite.userService.DeleteUser(suite.ctx, userID)
 	suite.NoError(err)
+
+	// Setup cache expectations for the final GetUserByID (should fail since user is deleted)
+	suite.mockCacher.On("GetJSON", suite.ctx, cacheKey, mock.AnythingOfType("*dto.UserInfo")).Return(fmt.Errorf("cache miss"))
 
 	// Verify deletion
 	_, err = suite.userService.GetUserByID(suite.ctx, userID)

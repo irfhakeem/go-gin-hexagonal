@@ -3,6 +3,7 @@ package cache
 import (
 	"context"
 	"encoding/json"
+	"go-gin-hexagonal/internal/domain/ports"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -12,7 +13,7 @@ type RedisCacher struct {
 	client *redis.Client
 }
 
-func NewRedisCacher(client *redis.Client) *RedisCacher {
+func NewRedisCacher(client *redis.Client) ports.CacheManager {
 	return &RedisCacher{
 		client: client,
 	}

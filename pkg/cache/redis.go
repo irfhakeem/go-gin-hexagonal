@@ -14,7 +14,6 @@ func NewRedisConnection(cfg *config.RedisConfig) *redis.Client {
 			Username: cfg.Username,
 			Password: cfg.Password,
 			DB:       cfg.Database,
-			Protocol: cfg.Protocol,
 		},
 	)
 
