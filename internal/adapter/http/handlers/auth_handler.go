@@ -34,6 +34,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 			response.Error(c, message.FAILED_PASSWORD_INCORRECT, err.Error(), 400)
 		case ports.ErrUserNotFound:
 			response.Error(c, message.FAILED_USER_NOT_FOUND, err.Error(), 404)
+		case ports.ErrUserNotVerified:
+			response.Error(c, message.FAILED_FORBIDDEN, err.Error(), 403)
 		default:
 			response.Error(c, message.FAILED_INTERNAL_SERVER_ERROR, err.Error(), 500)
 		}
@@ -76,6 +78,8 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		switch err {
 		case ports.ErrTokenInvalid:
 			response.Error(c, message.FAILED_TOKEN_INVALID, err.Error(), 401)
+		case ports.ErrUserNotFound:
+			response.Error(c, message.FAILED_USER_NOT_FOUND, err.Error(), 404)
 		default:
 			response.Error(c, message.FAILED_INTERNAL_SERVER_ERROR, err.Error(), 500)
 		}
