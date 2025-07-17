@@ -52,7 +52,7 @@ func main() {
 
 	// Security adapters
 	passwordHasher := security.NewBcryptHasher()
-	tokenManager := security.NewJWTTokenManager(cfg.JWT)
+	tokenManager := security.NewJWTToken(cfg.JWT)
 	encryptor := security.NewAESEncryptor(cfg.AES)
 
 	// Mailer adapter
