@@ -1,6 +1,7 @@
 package service
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"go-gin-hexagonal/internal/domain/dto"
@@ -10,44 +11,67 @@ import (
 type EmailService struct {
 	application string
 	mailer      ports.MailerManager
+	mqManager   ports.MessageQueueManager
 }
 
-func NewEmailService(smtp ports.MailerManager) ports.EmailService {
+func NewEmailService(smtp ports.MailerManager, mq ports.MessageQueueManager) ports.EmailService {
 	return &EmailService{
 		application: "Go Gin Hexagonal Application",
 		mailer:      smtp,
+		mqManager:   mq,
 	}
 }
 
 func (s *EmailService) SendNewUserEmail(to string, data *dto.NewUserData) error {
 	subject := fmt.Sprintf("Here is your new account information for %s", s.application)
 
-	body, err := s.mailer.LoadEmailTemplate("new_user", data)
-	if err != nil {
-		return fmt.Errorf("failed to load welcome email template: %v", err)
+	emailMsg := dto.EmailMessage{
+		To:       to,
+		Template: "new_user",
+		Subject:  subject,
+		Data:     *data,
 	}
 
-	return s.mailer.SendEmail(to, subject, body)
+	payload, err := json.Marshal(emailMsg)
+	if err != nil {
+		return fmt.Errorf("failed to marshal email message: %w", err)
+	}
+
+	return s.mqManager.Publisher("", "email_queue", false, false, payload)
 }
 
 func (s *EmailService) SendVerifyEmail(to string, data *dto.VerifyEmailData) error {
 	subject := fmt.Sprintf("Verify your email for %s", s.application)
 
-	body, err := s.mailer.LoadEmailTemplate("verify_email", data)
-	if err != nil {
-		return fmt.Errorf("failed to load verify email template: %v", err)
+	msg := dto.EmailMessage{
+		To:       to,
+		Subject:  subject,
+		Template: "verify_email",
+		Data:     *data,
 	}
 
-	return s.mailer.SendEmail(to, subject, body)
+	payload, err := json.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("failed to marshal verify email message: %w", err)
+	}
+
+	return s.mqManager.Publisher("", "email_queue", false, false, payload)
 }
 
 func (s *EmailService) SendRequestResetPassword(to string, data *dto.ResetPasswordData) error {
 	subject := fmt.Sprintf("Reset %s Account Password", s.application)
 
-	body, err := s.mailer.LoadEmailTemplate("reset_password", data)
-	if err != nil {
-		return fmt.Errorf("failed to load password reset request email template: %v", err)
+	msg := dto.EmailMessage{
+		To:       to,
+		Subject:  subject,
+		Template: "reset_password",
+		Data:     *data,
 	}
 
-	return s.mailer.SendEmail(to, subject, body)
+	payload, err := json.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("failed to marshal reset password email message: %w", err)
+	}
+
+	return s.mqManager.Publisher("", "email_queue", false, false, payload)
 }

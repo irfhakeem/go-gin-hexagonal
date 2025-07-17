@@ -14,6 +14,7 @@ type Config struct {
 	Mailer   MailerConfig
 	AES      AESConfig
 	Redis    RedisConfig
+	RabbitMQ RabbitMQConfig
 }
 
 type ServerConfig struct {
@@ -62,6 +63,13 @@ type RedisConfig struct {
 	Database int
 }
 
+type RabbitMQConfig struct {
+	Host     string
+	Port     int
+	Username string
+	Password string
+}
+
 func Load() (*Config, error) {
 	config := &Config{
 		Server: ServerConfig{
@@ -102,6 +110,12 @@ func Load() (*Config, error) {
 			Password: getEnv("REDIS_PASSWORD", ""),
 			Database: getEnvAsInt("REDIS_DATABASE", 0),
 		},
+		RabbitMQ: RabbitMQConfig{
+			Host:     getEnv("RABBITMQ_HOST", "localhost"),
+			Port:     getEnvAsInt("RABBITMQ_PORT", 5672),
+			Username: getEnv("RABBITMQ_USERNAME", "guest"),
+			Password: getEnv("RABBITMQ_PASSWORD", "guest"),
+		},
 	}
 
 	return config, nil
@@ -114,6 +128,11 @@ func (c *DatabaseConfig) DSN() string {
 
 func (c *ServerConfig) Address() string {
 	return fmt.Sprintf("%s:%d", c.Host, c.Port)
+}
+
+func (c *RabbitMQConfig) DSN() string {
+	return fmt.Sprintf("amqp://%s:%s@%s:%d/",
+		c.Username, c.Password, c.Host, c.Port)
 }
 
 func GetAppURL() string {

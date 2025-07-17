@@ -15,6 +15,7 @@ import (
 	"go-gin-hexagonal/internal/adapter/http/middleware"
 	"go-gin-hexagonal/internal/adapter/http/routes"
 	"go-gin-hexagonal/internal/adapter/mailer"
+	mqAdapter "go-gin-hexagonal/internal/adapter/message-queue"
 	"go-gin-hexagonal/internal/adapter/security"
 	"go-gin-hexagonal/internal/application/service"
 	"go-gin-hexagonal/internal/domain/entity"
@@ -22,6 +23,7 @@ import (
 	"go-gin-hexagonal/pkg/cache"
 	"go-gin-hexagonal/pkg/config"
 	"go-gin-hexagonal/pkg/database"
+	mq "go-gin-hexagonal/pkg/message-queue"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -50,6 +52,9 @@ func main() {
 	redisClient := cache.NewRedisConnection(&cfg.Redis)
 	defer cache.CloseRedisConnection(redisClient)
 
+	rabbitCh := mq.NewRabbitMQConnection(&cfg.RabbitMQ)
+	defer rabbitCh.Close()
+
 	// Init adapters
 	// Database adapters
 	userRepo := dbAdapter.NewUserRepository(db, dbAdapter.NewBaseRepository[entity.User](db))
@@ -61,13 +66,16 @@ func main() {
 	encryptor := security.NewAESEncryptor(cfg.AES)
 
 	// Mailer adapter
-	mailerManager := mailer.NewSMTPMailer(&cfg.Mailer)
+	smtpMailer := mailer.NewSMTPMailer(&cfg.Mailer)
 
 	// Redis cache adapter
 	redisCacher := cacheAdapter.NewRedisCacher(redisClient)
 
+	// Message Queue adapter
+	rabbitMQ := mqAdapter.NewRabbitMQ(rabbitCh)
+
 	// Init services
-	emailService := service.NewEmailService(mailerManager)
+	emailService := service.NewEmailService(smtpMailer, rabbitMQ)
 	authService := service.NewAuthService(userRepo, refreshTokenRepo, tokenManager, passwordHasher, emailService, encryptor)
 	userService := service.NewUserService(userRepo, passwordHasher, emailService, redisCacher)
 

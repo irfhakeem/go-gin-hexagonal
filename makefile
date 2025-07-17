@@ -6,3 +6,6 @@ seed:
 
 fresh:
 	go run ./cmd/migrate/main.go --fresh
+
+consume:
+	go run ./cmd/consume/main.go
