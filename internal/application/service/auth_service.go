@@ -8,32 +8,34 @@ import (
 	"strings"
 	"time"
 
-	"go-gin-hexagonal/internal/domain/dto"
 	"go-gin-hexagonal/internal/domain/entity"
 	"go-gin-hexagonal/internal/domain/ports"
+	"go-gin-hexagonal/internal/domain/ports/repositories"
+	"go-gin-hexagonal/internal/domain/ports/services"
 	"go-gin-hexagonal/pkg/config"
+	"go-gin-hexagonal/pkg/errors"
 	"go-gin-hexagonal/pkg/utils"
 
 	"github.com/google/uuid"
 )
 
 type AuthService struct {
-	userRepo         ports.UserRepository
-	refreshTokenRepo ports.RefreshTokenRepository
+	userRepo         repositories.UserRepository
+	refreshTokenRepo repositories.RefreshTokenRepository
 	tokenManager     ports.TokenManager
 	passwordHasher   ports.PasswordHasher
-	emailService     ports.EmailService
+	emailService     services.EmailService
 	aesEncryptor     ports.Encryptor
 }
 
 func NewAuthService(
-	userRepo ports.UserRepository,
-	refreshTokenRepo ports.RefreshTokenRepository,
+	userRepo repositories.UserRepository,
+	refreshTokenRepo repositories.RefreshTokenRepository,
 	tokenManager ports.TokenManager,
 	passwordHasher ports.PasswordHasher,
-	emailService ports.EmailService,
+	emailService services.EmailService,
 	aesEncryptor ports.Encryptor,
-) ports.AuthService {
+) services.AuthService {
 	return &AuthService{
 		userRepo:         userRepo,
 		refreshTokenRepo: refreshTokenRepo,
@@ -52,18 +54,18 @@ func getResetPasswordURL(token string) string {
 	return fmt.Sprintf("%s/reset-password?token=%s", config.GetAppURL(), url.QueryEscape(token))
 }
 
-func (s *AuthService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.LoginResponse, error) {
+func (s *AuthService) Login(ctx context.Context, req *services.LoginRequest) (*services.LoginResponse, error) {
 	user, err := s.userRepo.FindByEmail(ctx, req.Email)
 	if err != nil {
-		return nil, ports.ErrUserNotFound
+		return nil, errors.ErrUserNotFound
 	}
 
 	if !user.IsActive {
-		return nil, ports.ErrUserNotVerified
+		return nil, errors.ErrUserNotVerified
 	}
 
 	if err := s.passwordHasher.Verify(user.Password, req.Password); err != nil {
-		return nil, ports.ErrPasswordMismatch
+		return nil, errors.ErrPasswordMismatch
 	}
 
 	accessToken, _, err := s.tokenManager.GenerateAccessToken(user)
@@ -85,19 +87,19 @@ func (s *AuthService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.Lo
 		return nil, err
 	}
 
-	return &dto.LoginResponse{
+	return &services.LoginResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	}, nil
 }
 
-func (s *AuthService) Register(ctx context.Context, req *dto.RegisterRequest) error {
+func (s *AuthService) Register(ctx context.Context, req *services.RegisterRequest) error {
 	if s.userRepo.ExistsByEmail(ctx, req.Email) {
-		return ports.ErrUserAlreadyExists
+		return errors.ErrUserAlreadyExists
 	}
 
 	if s.userRepo.ExistsByUsername(ctx, req.Username) {
-		return ports.ErrUserAlreadyExists
+		return errors.ErrUserAlreadyExists
 	}
 
 	hashedPassword, err := s.passwordHasher.Hash(req.Password)
@@ -121,7 +123,7 @@ func (s *AuthService) Register(ctx context.Context, req *dto.RegisterRequest) er
 
 	go func(email string, token string) {
 		verifyEmailUrl := getVerifyEmailURL(token)
-		verifyEmailData := &dto.VerifyEmailData{
+		verifyEmailData := &services.VerifyEmailData{
 			VerificationURL: verifyEmailUrl,
 		}
 		if err := s.emailService.SendVerifyEmail(email, verifyEmailData); err != nil {
@@ -129,22 +131,24 @@ func (s *AuthService) Register(ctx context.Context, req *dto.RegisterRequest) er
 		}
 	}(req.Email, token)
 
-	return s.userRepo.Create(ctx, user)
+	_, err = s.userRepo.Create(ctx, user)
+
+	return err
 }
 
-func (s *AuthService) RefreshToken(ctx context.Context, req *dto.RefreshTokenRequest) (*dto.RefreshTokenResponse, error) {
-	claims, err := s.tokenManager.ValidateRefreshToken(req.RefreshToken)
+func (s *AuthService) RefreshToken(ctx context.Context, refreshToken string) (*services.RefreshTokenResponse, error) {
+	claims, err := s.tokenManager.ValidateRefreshToken(refreshToken)
 	if err != nil {
-		return nil, ports.ErrTokenInvalid
+		return nil, errors.ErrTokenInvalid
 	}
 
-	if !s.refreshTokenRepo.IsTokenValid(ctx, req.RefreshToken) {
-		return nil, ports.ErrTokenInvalid
+	if !s.refreshTokenRepo.IsTokenValid(ctx, refreshToken) {
+		return nil, errors.ErrTokenInvalid
 	}
 
 	user, err := s.userRepo.FindByID(ctx, claims.UserID)
 	if err != nil {
-		return nil, ports.ErrUserNotFound
+		return nil, errors.ErrUserNotFound
 	}
 
 	newAccessToken, _, err := s.tokenManager.GenerateAccessToken(user)
@@ -157,7 +161,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, req *dto.RefreshTokenReq
 		return nil, err
 	}
 
-	s.refreshTokenRepo.RevokeByToken(ctx, req.RefreshToken)
+	s.refreshTokenRepo.RevokeByToken(ctx, refreshToken)
 
 	newRefreshTokenEntity := &entity.RefreshToken{
 		UserID:    user.ID,
@@ -168,7 +172,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, req *dto.RefreshTokenReq
 		return nil, err
 	}
 
-	return &dto.RefreshTokenResponse{
+	return &services.RefreshTokenResponse{
 		AccessToken:  newAccessToken,
 		RefreshToken: newRefreshToken,
 	}, nil
@@ -181,7 +185,7 @@ func (s *AuthService) Logout(ctx context.Context, userID uuid.UUID) error {
 func (s *AuthService) SendVerifyEmail(ctx context.Context, email string) error {
 	user, err := s.userRepo.FindByEmail(ctx, email)
 	if err != nil {
-		return ports.ErrUserNotFound
+		return errors.ErrUserNotFound
 	}
 
 	plaintext := user.Email + "_" + utils.AddToCurrentTime(5*time.Minute)
@@ -193,7 +197,7 @@ func (s *AuthService) SendVerifyEmail(ctx context.Context, email string) error {
 
 	go func(email string, token string) {
 		verifyEmailUrl := getVerifyEmailURL(token)
-		verifyEmailData := &dto.VerifyEmailData{
+		verifyEmailData := &services.VerifyEmailData{
 			VerificationURL: verifyEmailUrl,
 		}
 		if err := s.emailService.SendVerifyEmail(email, verifyEmailData); err != nil {
@@ -212,28 +216,28 @@ func (s *AuthService) VerifyEmail(ctx context.Context, token string) error {
 
 	tokenArr := strings.Split(token, "_")
 	if len(tokenArr) != 2 {
-		return ports.ErrTokenInvalid
+		return errors.ErrTokenInvalid
 	}
 
 	email := tokenArr[0]
 	user, err := s.userRepo.FindByEmail(ctx, email)
 	if err != nil {
-		return ports.ErrUserNotFound
+		return errors.ErrUserNotFound
 	}
 
 	expiryStr := tokenArr[1]
 	expiryTime, err := utils.ParseTime(expiryStr)
 	if err != nil {
-		return ports.ErrTokenInvalid
+		return errors.ErrTokenInvalid
 	}
 	if time.Now().After(expiryTime) {
-		return ports.ErrTokenExpired
+		return errors.ErrTokenExpired
 	}
 
 	user.IsActive = true
 
-	if err := s.userRepo.Update(ctx, user); err != nil {
-		return ports.ErrUpdateUser
+	if _, err := s.userRepo.Update(ctx, user); err != nil {
+		return errors.ErrUpdateUser
 	}
 
 	return nil
@@ -242,7 +246,7 @@ func (s *AuthService) VerifyEmail(ctx context.Context, token string) error {
 func (s *AuthService) SendResetPassword(ctx context.Context, email string) error {
 	user, err := s.userRepo.FindByEmail(ctx, email)
 	if err != nil {
-		return ports.ErrUserNotFound
+		return errors.ErrUserNotFound
 	}
 
 	plaintext := user.Email + "_" + utils.AddToCurrentTime(15*time.Minute)
@@ -254,7 +258,7 @@ func (s *AuthService) SendResetPassword(ctx context.Context, email string) error
 
 	go func(email string, token string) {
 		resetPasswordUrl := getResetPasswordURL(token)
-		resetPasswordData := &dto.ResetPasswordData{
+		resetPasswordData := &services.ResetPasswordData{
 			ResetLink: resetPasswordUrl,
 		}
 		if err := s.emailService.SendRequestResetPassword(email, resetPasswordData); err != nil {
@@ -265,7 +269,7 @@ func (s *AuthService) SendResetPassword(ctx context.Context, email string) error
 	return nil
 }
 
-func (s *AuthService) ResetPassword(ctx context.Context, req *dto.ResetPasswordRequest) error {
+func (s *AuthService) ResetPassword(ctx context.Context, req *services.ResetPasswordRequest) error {
 	token := req.Token
 	token, err := s.aesEncryptor.Decrypt(token)
 	if err != nil {
@@ -274,21 +278,21 @@ func (s *AuthService) ResetPassword(ctx context.Context, req *dto.ResetPasswordR
 
 	tokenArr := strings.Split(token, "_")
 	if len(tokenArr) != 2 {
-		return ports.ErrTokenInvalid
+		return errors.ErrTokenInvalid
 	}
 
 	user, err := s.userRepo.FindByEmail(ctx, tokenArr[0])
 	if err != nil {
-		return ports.ErrUserNotFound
+		return errors.ErrUserNotFound
 	}
 
 	expiryStr := tokenArr[1]
 	expiryTime, err := utils.ParseTime(expiryStr)
 	if err != nil {
-		return ports.ErrTokenInvalid
+		return errors.ErrTokenInvalid
 	}
 	if time.Now().After(expiryTime) {
-		return ports.ErrTokenExpired
+		return errors.ErrTokenExpired
 	}
 
 	hashedPassword, err := s.passwordHasher.Hash(req.NewPassword)
@@ -297,8 +301,8 @@ func (s *AuthService) ResetPassword(ctx context.Context, req *dto.ResetPasswordR
 	}
 
 	user.Password = hashedPassword
-	if err := s.userRepo.Update(ctx, user); err != nil {
-		return ports.ErrUpdateUser
+	if _, err := s.userRepo.Update(ctx, user); err != nil {
+		return errors.ErrUpdateUser
 	}
 
 	return nil

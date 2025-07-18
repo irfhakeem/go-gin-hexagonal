@@ -1,11 +1,10 @@
-package database
+package gorm
 
 import (
 	"context"
-	"time"
 
 	"go-gin-hexagonal/internal/domain/entity"
-	"go-gin-hexagonal/internal/domain/ports"
+	"go-gin-hexagonal/internal/domain/ports/repositories"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -13,10 +12,10 @@ import (
 
 type UserRepository struct {
 	db       *gorm.DB
-	baseRepo ports.BaseRepository[entity.User]
+	baseRepo repositories.BaseRepository[entity.User]
 }
 
-func NewUserRepository(db *gorm.DB, baseRepo ports.BaseRepository[entity.User]) ports.UserRepository {
+func NewUserRepository(db *gorm.DB, baseRepo repositories.BaseRepository[entity.User]) repositories.UserRepository {
 	return &UserRepository{db: db, baseRepo: baseRepo}
 }
 
@@ -28,21 +27,20 @@ func (r *UserRepository) FindByID(ctx context.Context, id uuid.UUID) (*entity.Us
 	return r.baseRepo.FindByID(ctx, id)
 }
 
-func (r *UserRepository) Create(ctx context.Context, user *entity.User) error {
+func (r *UserRepository) Create(ctx context.Context, user *entity.User) (*entity.User, error) {
 	if user.ID == uuid.Nil {
 		user.ID = uuid.New()
 	}
-	_, err := r.baseRepo.Create(ctx, user)
-	return err
+
+	return r.baseRepo.Create(ctx, user)
 }
 
-func (r *UserRepository) Update(ctx context.Context, user *entity.User) error {
-	user.UpdatedAt = time.Now()
-	return r.db.WithContext(ctx).Save(user).Error
+func (r *UserRepository) Update(ctx context.Context, user *entity.User) (*entity.User, error) {
+	return r.baseRepo.Update(ctx, user)
 }
 
 func (r *UserRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	return r.db.WithContext(ctx).Delete(&entity.User{}, "id = ?", id).Error
+	return r.baseRepo.Delete(ctx, id)
 }
 
 func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*entity.User, error) {

@@ -1,11 +1,11 @@
-package database
+package gorm
 
 import (
 	"context"
 	"time"
 
 	"go-gin-hexagonal/internal/domain/entity"
-	"go-gin-hexagonal/internal/domain/ports"
+	"go-gin-hexagonal/internal/domain/ports/repositories"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -13,10 +13,10 @@ import (
 
 type RefreshTokenRepository struct {
 	db       *gorm.DB
-	baseRepo ports.BaseRepository[entity.RefreshToken]
+	baseRepo repositories.BaseRepository[entity.RefreshToken]
 }
 
-func NewRefreshTokenRepository(db *gorm.DB, baseRepo ports.BaseRepository[entity.RefreshToken]) ports.RefreshTokenRepository {
+func NewRefreshTokenRepository(db *gorm.DB, baseRepo repositories.BaseRepository[entity.RefreshToken]) repositories.RefreshTokenRepository {
 	return &RefreshTokenRepository{db: db, baseRepo: baseRepo}
 }
 

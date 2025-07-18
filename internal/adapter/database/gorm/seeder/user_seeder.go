@@ -1,8 +1,8 @@
-package seeders
+package seeder
 
 import (
 	"encoding/json"
-	"go-gin-hexagonal/internal/adapter/database/model"
+	"go-gin-hexagonal/internal/adapter/database/gorm/schema"
 	"io"
 	"log"
 	"os"
@@ -22,7 +22,7 @@ func UserSeeder(db *gorm.DB) error {
 		return err
 	}
 
-	var users []model.User
+	var users []schema.User
 	if err := json.Unmarshal(jsonData, &users); err != nil {
 		return err
 	}

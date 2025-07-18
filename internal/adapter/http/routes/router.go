@@ -48,36 +48,8 @@ func (r *Router) SetupRoutes() *gin.Engine {
 	})
 
 	v1 := router.Group("/api/v1")
-	{
-		auth := v1.Group("/auth")
-		{
-			auth.POST("/login", r.authHandler.Login)
-			auth.POST("/register", r.authHandler.Register)
-			auth.POST("/verify-email", r.authHandler.VerifyEmail)
-			auth.POST("/send-verify-email", r.authHandler.SendVerifyEmail)
-			auth.POST("/reset-password", r.authHandler.ResetPassword)
-			auth.POST("/send-reset-password", r.authHandler.SendResetPassword)
-
-			authProtected := auth.Group("")
-			authProtected.Use(r.authMiddleware.Middleware())
-			{
-				authProtected.POST("/refresh", r.authHandler.RefreshToken)
-				authProtected.POST("/logout", r.authHandler.Logout)
-			}
-		}
-
-		users := v1.Group("/users")
-		users.Use(r.authMiddleware.Middleware())
-		{
-			users.GET("", r.userHandler.GetAllUsers)
-			users.GET("/profile", r.userHandler.GetProfile)
-			users.GET("/:id", r.userHandler.GetUserByID)
-			users.POST("", r.userHandler.CreateUser)
-			users.PUT("/profile", r.userHandler.UpdateProfile)
-			users.PUT("/change-password", r.userHandler.ChangePassword)
-			users.DELETE("/:id", r.userHandler.DeleteUser)
-		}
-	}
+	RegisterAuthRoutes(v1, r.authHandler, r.authMiddleware)
+	RegisterUserRoutes(v1, r.userHandler, r.authMiddleware)
 
 	return router
 }

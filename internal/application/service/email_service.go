@@ -3,8 +3,8 @@ package service
 import (
 	"fmt"
 
-	"go-gin-hexagonal/internal/domain/dto"
 	"go-gin-hexagonal/internal/domain/ports"
+	"go-gin-hexagonal/internal/domain/ports/services"
 )
 
 type EmailService struct {
@@ -12,14 +12,14 @@ type EmailService struct {
 	mailer      ports.MailerManager
 }
 
-func NewEmailService(smtp ports.MailerManager) ports.EmailService {
+func NewEmailService(smtp ports.MailerManager) services.EmailService {
 	return &EmailService{
 		application: "Go Gin Hexagonal Application",
 		mailer:      smtp,
 	}
 }
 
-func (s *EmailService) SendNewUserEmail(to string, data *dto.NewUserData) error {
+func (s *EmailService) SendNewUserEmail(to string, data *services.NewUserEmailData) error {
 	subject := fmt.Sprintf("Here is your new account information for %s", s.application)
 
 	body, err := s.mailer.LoadEmailTemplate("new_user", data)
@@ -30,7 +30,7 @@ func (s *EmailService) SendNewUserEmail(to string, data *dto.NewUserData) error 
 	return s.mailer.SendEmail(to, subject, body)
 }
 
-func (s *EmailService) SendVerifyEmail(to string, data *dto.VerifyEmailData) error {
+func (s *EmailService) SendVerifyEmail(to string, data *services.VerifyEmailData) error {
 	subject := fmt.Sprintf("Verify your email for %s", s.application)
 
 	body, err := s.mailer.LoadEmailTemplate("verify_email", data)
@@ -41,7 +41,7 @@ func (s *EmailService) SendVerifyEmail(to string, data *dto.VerifyEmailData) err
 	return s.mailer.SendEmail(to, subject, body)
 }
 
-func (s *EmailService) SendRequestResetPassword(to string, data *dto.ResetPasswordData) error {
+func (s *EmailService) SendRequestResetPassword(to string, data *services.ResetPasswordData) error {
 	subject := fmt.Sprintf("Reset %s Account Password", s.application)
 
 	body, err := s.mailer.LoadEmailTemplate("reset_password", data)

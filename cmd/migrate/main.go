@@ -1,8 +1,8 @@
 package main
 
 import (
+	"go-gin-hexagonal/internal/adapter/database/gorm"
 	"go-gin-hexagonal/pkg/config"
-	"go-gin-hexagonal/pkg/database"
 	"log"
 	"os"
 
@@ -23,18 +23,18 @@ func main() {
 		log.Fatal("Failed to load configuration:", err)
 	}
 
-	db, err := database.NewPostgresConnection(&cfg.Database)
+	db, err := gorm.NewPostgresConnection(&cfg.Database)
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
 
 	switch args[1] {
 	case "--migrate":
-		database.RunMigrations(db)
+		gorm.RunMigrations(db)
 	case "--seed":
-		database.RunSeeders(db)
+		gorm.RunSeeders(db)
 	case "--fresh":
-		database.RunFreshMigrations(db)
+		gorm.RunFreshMigrations(db)
 	default:
 		log.Println("Unknown command. Use --migrate, --seed, or --fresh.")
 		return

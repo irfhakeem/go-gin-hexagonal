@@ -1,8 +1,8 @@
-package database
+package gorm
 
 import (
 	"context"
-	"go-gin-hexagonal/internal/domain/ports"
+	"go-gin-hexagonal/internal/domain/ports/repositories"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -12,7 +12,7 @@ type BaseRepository[T any] struct {
 	db *gorm.DB
 }
 
-func NewBaseRepository[T any](db *gorm.DB) ports.BaseRepository[T] {
+func NewBaseRepository[T any](db *gorm.DB) repositories.BaseRepository[T] {
 	return &BaseRepository[T]{db: db}
 }
 

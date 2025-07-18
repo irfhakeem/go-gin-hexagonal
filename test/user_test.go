@@ -3,10 +3,11 @@ package test
 import (
 	"context"
 	"go-gin-hexagonal/internal/application/service"
-	"go-gin-hexagonal/internal/domain/dto"
 	"go-gin-hexagonal/internal/domain/entity"
-	"go-gin-hexagonal/internal/domain/ports"
-	mockAdapter "go-gin-hexagonal/test/mock"
+	"go-gin-hexagonal/internal/domain/ports/services"
+	"go-gin-hexagonal/pkg/errors"
+	mock_external "go-gin-hexagonal/test/mock/external"
+	mock_repository "go-gin-hexagonal/test/mock/repository"
 	"testing"
 	"time"
 
@@ -32,23 +33,19 @@ const (
 // EC = Error Cases
 // CL = Complete Lifecycle
 
-type MockUserRepository struct {
-	users map[uuid.UUID]*entity.User
-}
-
 type UserTestSuite struct {
 	suite.Suite
-	mockRepo    *MockUserRepository
-	mockHasher  *mockAdapter.MockSecurityService
-	mockMailer  *mockAdapter.MockEmailService
-	userService ports.UserService
+	mockRepo    *mock_repository.MockUserRepository
+	mockHasher  *mock_external.MockSecurityService
+	mockMailer  *mock_external.MockEmailService
+	userService services.UserService
 	ctx         context.Context
 }
 
 func (suite *UserTestSuite) SetupTest() {
-	suite.mockRepo = NewMockUserRepository()
-	suite.mockHasher = mockAdapter.NewMockSecurityService()
-	suite.mockMailer = mockAdapter.NewMockEmailService()
+	suite.mockRepo = mock_repository.NewMockUserRepository()
+	suite.mockHasher = mock_external.NewMockSecurityService()
+	suite.mockMailer = mock_external.NewMockEmailService()
 	suite.userService = service.NewUserService(suite.mockRepo, suite.mockHasher, suite.mockMailer)
 	suite.ctx = context.Background()
 
@@ -83,107 +80,10 @@ func createTestUserWithID(id uuid.UUID) *entity.User {
 	return user
 }
 
-func NewMockUserRepository() *MockUserRepository {
-	testUser := createTestUser()
-	return &MockUserRepository{
-		users: map[uuid.UUID]*entity.User{
-			uuid.New(): testUser,
-		},
-	}
-}
-
-func (r *MockUserRepository) Create(ctx context.Context, user *entity.User) error {
-	if _, exists := r.users[user.ID]; exists {
-		return ports.ErrUserAlreadyExists
-	}
-	r.users[user.ID] = user
-	return nil
-}
-
-func (r *MockUserRepository) FindByID(ctx context.Context, id uuid.UUID) (*entity.User, error) {
-	if user, exists := r.users[id]; exists {
-		return user, nil
-	}
-	return nil, ports.ErrUserNotFound
-}
-
-func (r *MockUserRepository) FindByEmail(ctx context.Context, email string) (*entity.User, error) {
-	for _, user := range r.users {
-		if user.Email == email {
-			return user, nil
-		}
-	}
-	return nil, ports.ErrUserNotFound
-}
-
-func (r *MockUserRepository) FindByUsername(ctx context.Context, username string) (*entity.User, error) {
-	for _, user := range r.users {
-		if user.Username == username {
-			return user, nil
-		}
-	}
-	return nil, ports.ErrUserNotFound
-}
-
-func (r *MockUserRepository) Update(ctx context.Context, user *entity.User) error {
-	if _, exists := r.users[user.ID]; !exists {
-		return ports.ErrUserNotFound
-	}
-	user.UpdatedAt = time.Now()
-	r.users[user.ID] = user
-	return nil
-}
-
-func (r *MockUserRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	if _, exists := r.users[id]; !exists {
-		return ports.ErrUserNotFound
-	}
-	delete(r.users, id)
-	return nil
-}
-
-func (r *MockUserRepository) FindAll(ctx context.Context, limit, offset int, search string) ([]*entity.User, int64, error) {
-	var users []*entity.User
-	for _, user := range r.users {
-		users = append(users, user)
-	}
-
-	total := int64(len(users))
-	start := min(offset, len(users))
-	end := min(offset+limit, len(users))
-
-	return users[start:end], total, nil
-}
-
-func (r *MockUserRepository) ExistsByEmail(ctx context.Context, email string) bool {
-	for _, user := range r.users {
-		if user.Email == email {
-			return true
-		}
-	}
-	return false
-}
-
-func (r *MockUserRepository) ExistsByUsername(ctx context.Context, username string) bool {
-	for _, user := range r.users {
-		if user.Username == username {
-			return true
-		}
-	}
-	return false
-}
-
 func (suite *UserTestSuite) assertUserEquals(expected, actual *entity.User) {
 	suite.Equal(expected.Email, actual.Email)
 	suite.Equal(expected.Username, actual.Username)
 	suite.Equal(expected.Name, actual.Name)
-}
-
-func (suite *UserTestSuite) getExistingUserID() uuid.UUID {
-	for id := range suite.mockRepo.users {
-		return id
-	}
-	return uuid.New()
 }
 
 func (suite *UserTestSuite) TestUserRepoCRUD() {
@@ -191,7 +91,8 @@ func (suite *UserTestSuite) TestUserRepoCRUD() {
 	user := createTestUserWithID(userID)
 
 	// Create
-	suite.NoError(suite.mockRepo.Create(suite.ctx, user))
+	_, err := suite.mockRepo.Create(suite.ctx, user)
+	suite.NoError(err)
 
 	// Read
 	retrievedUser, err := suite.mockRepo.FindByID(suite.ctx, userID)
@@ -201,7 +102,8 @@ func (suite *UserTestSuite) TestUserRepoCRUD() {
 	// Update
 	updatedUser := createTestUserWithID(userID)
 	updatedUser.Name = updatedName
-	suite.NoError(suite.mockRepo.Update(suite.ctx, updatedUser))
+	_, err = suite.mockRepo.Update(suite.ctx, updatedUser)
+	suite.NoError(err)
 
 	// Verify update
 	retrievedUser, err = suite.mockRepo.FindByID(suite.ctx, userID)
@@ -213,7 +115,7 @@ func (suite *UserTestSuite) TestUserRepoCRUD() {
 
 	// Verify deletion
 	_, err = suite.mockRepo.FindByID(suite.ctx, userID)
-	suite.Equal(ports.ErrUserNotFound, err)
+	suite.Equal(errors.ErrUserNotFound, err)
 }
 
 func (suite *UserTestSuite) TestUserRepoFO() {
@@ -256,27 +158,31 @@ func (suite *UserTestSuite) TestUserRepoEO() {
 }
 
 func (suite *UserTestSuite) TestUserRepoEC() {
+	id := uuid.New()
+	user := createTestUserWithID(id)
+	_, err := suite.mockRepo.Create(suite.ctx, user)
+	suite.NoError(err)
+
 	suite.Run("CreateDuplicate", func() {
-		existingID := suite.getExistingUserID()
-		user := createTestUserWithID(existingID)
-		err := suite.mockRepo.Create(suite.ctx, user)
-		suite.Equal(ports.ErrUserAlreadyExists, err)
+		user = createTestUserWithID(id)
+		_, err = suite.mockRepo.Create(suite.ctx, user)
+		suite.Equal(errors.ErrUserAlreadyExists, err)
 	})
 
 	suite.Run("FindNonExistent", func() {
 		_, err := suite.mockRepo.FindByID(suite.ctx, uuid.New())
-		suite.Equal(ports.ErrUserNotFound, err)
+		suite.Equal(errors.ErrUserNotFound, err)
 	})
 
 	suite.Run("UpdateNonExistent", func() {
 		user := createTestUserWithID(uuid.New())
-		err := suite.mockRepo.Update(suite.ctx, user)
-		suite.Equal(ports.ErrUserNotFound, err)
+		_, err := suite.mockRepo.Update(suite.ctx, user)
+		suite.Equal(errors.ErrUserNotFound, err)
 	})
 
 	suite.Run("DeleteNonExistent", func() {
 		err := suite.mockRepo.Delete(suite.ctx, uuid.New())
-		suite.Equal(ports.ErrUserNotFound, err)
+		suite.Equal(errors.ErrUserNotFound, err)
 	})
 }
 
@@ -286,7 +192,8 @@ func (suite *UserTestSuite) TestUserServiceCL() {
 	user.Password = "hashedpassword"
 
 	// Create
-	suite.NoError(suite.mockRepo.Create(suite.ctx, user))
+	_, err := suite.mockRepo.Create(suite.ctx, user)
+	suite.NoError(err)
 
 	// Read
 	userInfo, err := suite.userService.GetUserByID(suite.ctx, userID)
@@ -295,7 +202,7 @@ func (suite *UserTestSuite) TestUserServiceCL() {
 
 	// Update
 	newName := "Updated Lifecycle User"
-	updateReq := &dto.UpdateUserRequest{Name: &newName}
+	updateReq := &services.UpdateUserRequest{Name: &newName}
 
 	updatedUserInfo, err := suite.userService.UpdateUser(suite.ctx, userID, updateReq)
 	suite.NoError(err)
@@ -303,7 +210,7 @@ func (suite *UserTestSuite) TestUserServiceCL() {
 
 	// Change password
 	suite.mockHasher.On("Hash", "newpassword123").Return("newhashedpassword", nil)
-	changePasswordReq := &dto.ChangePasswordRequest{
+	changePasswordReq := &services.ChangePasswordRequest{
 		CurrentPassword: testPassword,
 		NewPassword:     "newpassword123",
 	}
@@ -317,5 +224,5 @@ func (suite *UserTestSuite) TestUserServiceCL() {
 
 	// Verify deletion
 	_, err = suite.userService.GetUserByID(suite.ctx, userID)
-	suite.Equal(ports.ErrUserNotFound, err)
+	suite.Equal(errors.ErrUserNotFound, err)
 }

@@ -1,12 +1,12 @@
-package database
+package gorm
 
 import (
 	"log"
 	"strings"
 
-	"go-gin-hexagonal/internal/adapter/database/model"
+	"go-gin-hexagonal/internal/adapter/database/gorm/schema"
+	"go-gin-hexagonal/internal/adapter/database/gorm/seeder"
 	"go-gin-hexagonal/pkg/config"
-	seeders "go-gin-hexagonal/pkg/database/seeder"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -26,8 +26,8 @@ var (
 
 	// Models
 	models = []any{
-		&model.User{},
-		&model.RefreshToken{},
+		&schema.User{},
+		&schema.RefreshToken{},
 	}
 )
 
@@ -89,7 +89,7 @@ func RunMigrations(db *gorm.DB) error {
 func RunSeeders(db *gorm.DB) {
 	log.Println("Running database seeders...")
 
-	err := seeders.UserSeeder(db)
+	err := seeder.UserSeeder(db)
 	if err != nil {
 		log.Printf("Error seeding user data: %v", err)
 	}

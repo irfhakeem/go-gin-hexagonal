@@ -3,18 +3,20 @@ package handlers
 import (
 	response "go-gin-hexagonal/internal/adapter/http"
 	"go-gin-hexagonal/internal/adapter/http/message"
-	"go-gin-hexagonal/internal/domain/dto"
-	"go-gin-hexagonal/internal/domain/ports"
+	"go-gin-hexagonal/internal/application/dto"
+	"go-gin-hexagonal/internal/application/mapper"
+	"go-gin-hexagonal/internal/domain/ports/services"
+	"go-gin-hexagonal/pkg/errors"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
 type AuthHandler struct {
-	authService ports.AuthService
+	authService services.AuthService
 }
 
-func NewAuthHandler(authService ports.AuthService) *AuthHandler {
+func NewAuthHandler(authService services.AuthService) *AuthHandler {
 	return &AuthHandler{
 		authService: authService,
 	}
@@ -27,14 +29,14 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	result, err := h.authService.Login(c.Request.Context(), &req)
+	result, err := h.authService.Login(c.Request.Context(), (*services.LoginRequest)(&req))
 	if err != nil {
 		switch err {
-		case ports.ErrPasswordMismatch:
+		case errors.ErrPasswordMismatch:
 			response.Error(c, message.FAILED_PASSWORD_INCORRECT, err.Error(), 400)
-		case ports.ErrUserNotFound:
+		case errors.ErrUserNotFound:
 			response.Error(c, message.FAILED_USER_NOT_FOUND, err.Error(), 404)
-		case ports.ErrUserNotVerified:
+		case errors.ErrUserNotVerified:
 			response.Error(c, message.FAILED_FORBIDDEN, err.Error(), 403)
 		default:
 			response.Error(c, message.FAILED_INTERNAL_SERVER_ERROR, err.Error(), 500)
@@ -42,7 +44,9 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, message.SUCCESS_LOGIN, result, 200)
+	mapResult := mapper.MapLoginResponseServiceToDTO(result)
+
+	response.Success(c, message.SUCCESS_LOGIN, mapResult, 200)
 }
 
 func (h *AuthHandler) Register(c *gin.Context) {
@@ -52,10 +56,12 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	err := h.authService.Register(c.Request.Context(), &req)
+	mapReq := mapper.MapRegisterRequestDTOToService(&req)
+
+	err := h.authService.Register(c.Request.Context(), mapReq)
 	if err != nil {
 		switch err {
-		case ports.ErrUserAlreadyExists:
+		case errors.ErrUserAlreadyExists:
 			response.Error(c, message.FAILED_REGISTER_USER, err.Error(), 409)
 		default:
 			response.Error(c, message.FAILED_INTERNAL_SERVER_ERROR, err.Error(), 500)
@@ -73,12 +79,12 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		return
 	}
 
-	result, err := h.authService.RefreshToken(c.Request.Context(), &req)
+	result, err := h.authService.RefreshToken(c.Request.Context(), req.RefreshToken)
 	if err != nil {
 		switch err {
-		case ports.ErrTokenInvalid:
+		case errors.ErrTokenInvalid:
 			response.Error(c, message.FAILED_TOKEN_INVALID, err.Error(), 401)
-		case ports.ErrUserNotFound:
+		case errors.ErrUserNotFound:
 			response.Error(c, message.FAILED_USER_NOT_FOUND, err.Error(), 404)
 		default:
 			response.Error(c, message.FAILED_INTERNAL_SERVER_ERROR, err.Error(), 500)
@@ -86,19 +92,21 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, message.SUCCESS_REFRESH_TOKEN, result, 200)
+	mapResult := mapper.MapRefreshTokenResponseServiceToDTO(result)
+
+	response.Success(c, message.SUCCESS_REFRESH_TOKEN, mapResult, 200)
 }
 
 func (h *AuthHandler) Logout(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		response.Error(c, message.FAILED_UNAUTHORIZED, ports.ErrInvalidCredentials.Error(), 401)
+		response.Error(c, message.FAILED_UNAUTHORIZED, errors.ErrInvalidCredentials.Error(), 401)
 		return
 	}
 
 	userUUID, ok := userID.(uuid.UUID)
 	if !ok {
-		response.Error(c, message.FAILED_INVALID_ID_FORMAT, ports.ErrInvalidIDFormat.Error(), 400)
+		response.Error(c, message.FAILED_INVALID_ID_FORMAT, errors.ErrInvalidIDFormat.Error(), 400)
 		return
 	}
 
@@ -121,7 +129,7 @@ func (h *AuthHandler) VerifyEmail(c *gin.Context) {
 	err := h.authService.VerifyEmail(c.Request.Context(), req.Token)
 	if err != nil {
 		switch err {
-		case ports.ErrUserNotFound:
+		case errors.ErrUserNotFound:
 			response.Error(c, message.FAILED_USER_NOT_FOUND, err.Error(), 404)
 		default:
 			response.Error(c, message.FAILED_INTERNAL_SERVER_ERROR, err.Error(), 500)
@@ -142,7 +150,7 @@ func (h *AuthHandler) SendVerifyEmail(c *gin.Context) {
 	err := h.authService.SendVerifyEmail(c.Request.Context(), req.Email)
 	if err != nil {
 		switch err {
-		case ports.ErrUserNotFound:
+		case errors.ErrUserNotFound:
 			response.Error(c, message.FAILED_USER_NOT_FOUND, err.Error(), 404)
 		default:
 			response.Error(c, message.FAILED_INTERNAL_SERVER_ERROR, err.Error(), 500)
@@ -160,12 +168,14 @@ func (h *AuthHandler) ResetPassword(c *gin.Context) {
 		return
 	}
 
-	err := h.authService.ResetPassword(c.Request.Context(), &req)
+	mapReq := mapper.MapResetPasswordRequestDTOToService(&req)
+
+	err := h.authService.ResetPassword(c.Request.Context(), mapReq)
 	if err != nil {
 		switch err {
-		case ports.ErrTokenInvalid:
+		case errors.ErrTokenInvalid:
 			response.Error(c, message.FAILED_TOKEN_INVALID, err.Error(), 401)
-		case ports.ErrUserNotFound:
+		case errors.ErrUserNotFound:
 			response.Error(c, message.FAILED_USER_NOT_FOUND, err.Error(), 404)
 		default:
 			response.Error(c, message.FAILED_INTERNAL_SERVER_ERROR, err.Error(), 500)
@@ -186,7 +196,7 @@ func (h *AuthHandler) SendResetPassword(c *gin.Context) {
 	err := h.authService.SendResetPassword(c.Request.Context(), req.Email)
 	if err != nil {
 		switch err {
-		case ports.ErrUserNotFound:
+		case errors.ErrUserNotFound:
 			response.Error(c, message.FAILED_USER_NOT_FOUND, err.Error(), 404)
 		default:
 			response.Error(c, message.FAILED_INTERNAL_SERVER_ERROR, err.Error(), 500)

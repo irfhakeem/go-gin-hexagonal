@@ -1,4 +1,4 @@
-package adapter
+package mock_external
 
 import "github.com/stretchr/testify/mock"
 

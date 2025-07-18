@@ -1,7 +1,7 @@
-package adapter
+package mock_external
 
 import (
-	"go-gin-hexagonal/internal/domain/dto"
+	"go-gin-hexagonal/internal/domain/ports/services"
 
 	"github.com/stretchr/testify/mock"
 )
@@ -28,17 +28,17 @@ type MockEmailService struct {
 	*MockMailerManager
 }
 
-func (m *MockEmailService) SendNewUserEmail(to string, data *dto.NewUserData) error {
+func (m *MockEmailService) SendNewUserEmail(to string, data *services.NewUserEmailData) error {
 	args := m.Called(to, data)
 	return args.Error(0)
 }
 
-func (m *MockEmailService) SendVerifyEmail(to string, data *dto.VerifyEmailData) error {
+func (m *MockEmailService) SendVerifyEmail(to string, data *services.VerifyEmailData) error {
 	args := m.Called(to, data)
 	return args.Error(0)
 }
 
-func (m *MockEmailService) SendRequestResetPassword(to string, data *dto.ResetPasswordData) error {
+func (m *MockEmailService) SendRequestResetPassword(to string, data *services.ResetPasswordData) error {
 	args := m.Called(to, data)
 	return args.Error(0)
 }
