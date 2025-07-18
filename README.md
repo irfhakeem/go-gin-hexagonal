@@ -16,94 +16,56 @@ This repository serves as a **clean architecture template** for building robust 
 ```
 go-gin-hexagonal/
 ├── cmd/
-│   ├── api/
-│   │   └── main.go              # API server entry point
-│   └── migrate/
-│       └── main.go              # Database migration entry point
+│   ├── api/                # API server entry point
+│   │   └── main.go
+│   └── migrate/            # Database migration entry point
+│       └── main.go
 ├── internal/
-│   ├── adapter/                 # External integrations (Infrastructure Layer)
+│   ├── adapter/            # Adapter Layer (infrastructure & delivery)
 │   │   ├── database/
-│   │   │   ├── model/           # GORM database models
-│   │   │   │   ├── base.go
-│   │   │   │   ├── refresh_token.go
-│   │   │   │   └── user.go
-│   │   │   ├── base_repository.go
-│   │   │   ├── refresh_token_repository.go
-│   │   │   └── user_repository.go
-│   │   ├── http/                # HTTP layer (REST API)
-│   │   │   ├── handlers/
-│   │   │   │   ├── auth_handler.go
-│   │   │   │   └── user_handler.go
-│   │   │   ├── message/
-│   │   │   │   ├── error.go
-│   │   │   │   └── success.go
-│   │   │   ├── middleware/
-│   │   │   │   ├── cors.go
-│   │   │   │   └── middleware.go
-│   │   │   ├── routes/
-│   │   │   │   └── router.go
-│   │   │   └── response.go
-│   │   ├── mailer/              # Email service adapter
+│   │   │   ├── gorm/       # GORM implementation & repositories
+│   │   │   │   ├── base_repository.go
+│   │   │   │   ├── gorm.go
+│   │   │   │   ├── refresh_token_repository.go
+│   │   │   │   ├── user_repository.go
+│   │   │   │   ├── json/         # Seed data (user.json)
+│   │   │   │   ├── schema/       # GORM models/schema
+│   │   │   │   └── seeder/       # Seeder logic
+│   │   ├── http/                 # HTTP layer (REST API)
+│   │   │   ├── handlers/         # HTTP handlers (auth, user)
+│   │   │   ├── message/          # Response messages (error, success)
+│   │   │   ├── middleware/       # Middleware (CORS, CSRF, etc)
+│   │   │   ├── routes/           # Route definitions
+│   │   │   └── response.go       # Standardized response
+│   │   ├── mailer/               # Email service adapter
 │   │   │   ├── smtp.go
-│   │   │   └── template/
-│   │   │       ├── new_user.html
-│   │   │       ├── reset_password.html
-│   │   │       └── verify_email.html
-│   │   └── security/            # Security adapters
-│   │       ├── aes.go           # AES encryption
-│   │       ├── bcrypt.go        # Password hashing
-│   │       └── jwt.go           # JWT token management
-│   ├── application/             # Business Logic (Application Layer)
-│   │   └── service/
-│   │       ├── auth_service.go
-│   │       ├── email_service.go
-│   │       └── user_service.go
-│   └── domain/                  # Core Business Logic (Domain Layer)
-│       ├── dto/                 # Data Transfer Objects
-│       │   ├── auth_dto.go
-│       │   ├── email_dto.go
-│       │   ├── pagination_dto.go
-│       │   ├── token_dto.go
-│       │   └── user_dto.go
-│       ├── entity/              # Domain entities
-│       │   ├── base.go
-│       │   ├── refresh_token.go
-│       │   └── user.go
-│       └── ports/               # Interfaces (Dependency Inversion)
-│           ├── mailer.go
-│           ├── repositories.go
-│           ├── security.go
-│           └── services.go
-├── pkg/                         # Shared utilities and configuration
-│   ├── config/
-│   │   └── config.go
-│   ├── database/
-│   │   ├── json/
-│   │   │   └── user.json        # Seed data
-│   │   ├── seeder/
-│   │   │   └── user_seeder.go
-│   │   └── gorm.go              # GORM database configuration
-│   └── utils/
-│       ├── number_utils.go
-│       ├── string_utils.go
-│       └── time_utils.go
-├── test/                        # Testing layer
-│   ├── mock/                    # Mock implementations for testing
-│   │   ├── mock_mailer.go
-│   │   └── mock_security.go
-│   └── user_test.go             # Comprehensive test suites
+│   │   │   └── template/         # Email HTML templates
+│   │   └── security/             # Security adapters (AES, bcrypt, JWT)
+│   ├── application/              # Application Layer (use cases, business logic)
+│   │   ├── dto/                  # Data Transfer Objects
+│   │   ├── mapper/               # DTO <-> Entity mappers
+│   │   └── service/              # Application services (auth, user, email)
+│   └── domain/                   # Domain Layer (core business logic)
+│       ├── entity/               # Domain entities
+│       ├── ports/                # Interfaces (repositories, services, security, mailer)
+├── pkg/                          # Shared utilities & configuration
+│   ├── config/                   # App config loader
+│   ├── errors/                   # Custom error types
+│   └── utils/                    # Utility functions
+├── test/                         # Test layer
+│   ├── mock/                     # Mock implementations (external, repository)
+│   └── user_test.go              # Test suites
+├── tmp/                          # Temporary build/output files
 ├── .github/
-│   └── workflows/
-│       └── go.yml               # GitHub Actions CI/CD
-├── .air.toml                    # Air hot reload configuration
-├── .env.example                 # Environment variables template
-├── .gitignore
-├── Dockerfile                   # Docker containerization
+│   └── workflows/                # CI/CD workflows
+├── .air.toml                     # Air hot reload config
+├── .env.example                  # Env template
+├── Dockerfile                    # Docker config
 ├── go.mod
 ├── go.sum
-├── makefile                     # Build automation
+├── makefile                      # Build automation
 ├── README.md
-└── sonar-project.properties     # SonarQube configuration
+└── sonar-project.properties      # SonarQube config
 ```
 
 ## ✨ Key Features
@@ -316,31 +278,31 @@ go test -v ./test/
 
 ## 🏗️ Architecture Deep Dive
 
-### Hexagonal Architecture Layers
+### Hexagonal Architecture Mapping
 
 1. **Domain Layer** (`internal/domain/`)
 
+   - Pure business logic, entities, and interfaces (ports)
    - No external dependencies
-   - Entities, DTOs, and Ports (interfaces)
 
 2. **Application Layer** (`internal/application/`)
 
-   - Use cases and business workflows
-   - Orchestrates domain objects
-   - Business logic
+   - Use case orchestration, service logic, DTOs, and mappers
+   - Manages business workflow and communication between layers
 
 3. **Adapter Layer** (`internal/adapter/`)
 
-   - External integrations
-   - Database repositories
-   - HTTP handlers
-   - Email services
-   - Security implementations
+   - Implementation of ports (repositories, mailer, security, etc.)
+   - External integrations: database, HTTP, email, security
+   - Delivery (HTTP handlers, middleware, response)
 
-4. **Infrastructure Layer** (`pkg/`)
-   - Configuration management
-   - Database connections
-   - Utilities and helpers
+4. **Infrastructure/Utility Layer** (`pkg/`)
+
+   - Application configuration, error handling, general utilities
+   - Does not contain business logic
+
+5. **Test Layer** (`test/`)
+   - Mocks, test suites, and comprehensive testing
 
 ## 🔒 Security Features
 
