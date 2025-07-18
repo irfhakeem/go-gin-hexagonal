@@ -2,12 +2,12 @@ package test
 
 import (
 	"context"
+	"go-gin-hexagonal/internal/application/service"
 	"go-gin-hexagonal/internal/domain/entity"
 	"go-gin-hexagonal/internal/domain/ports/services"
 	"go-gin-hexagonal/pkg/errors"
 	mock_external "go-gin-hexagonal/test/mock/external"
 	mock_repository "go-gin-hexagonal/test/mock/repository"
-	mock_service "go-gin-hexagonal/test/mock/service"
 	"testing"
 	"time"
 
@@ -38,7 +38,7 @@ type UserTestSuite struct {
 	mockRepo    *mock_repository.MockUserRepository
 	mockHasher  *mock_external.MockSecurityService
 	mockMailer  *mock_external.MockEmailService
-	mockService *mock_service.MockUserService
+	userService services.UserService
 	ctx         context.Context
 }
 
@@ -46,7 +46,7 @@ func (suite *UserTestSuite) SetupTest() {
 	suite.mockRepo = mock_repository.NewMockUserRepository()
 	suite.mockHasher = mock_external.NewMockSecurityService()
 	suite.mockMailer = mock_external.NewMockEmailService()
-	suite.mockService = mock_service.NewMockUserService()
+	suite.userService = service.NewUserService(suite.mockRepo, suite.mockHasher, suite.mockMailer)
 	suite.ctx = context.Background()
 
 	// Setup common mock expectations
@@ -191,58 +191,38 @@ func (suite *UserTestSuite) TestUserServiceCL() {
 	user := createTestUserWithID(userID)
 	user.Password = "hashedpassword"
 
-	// Setup mock responses
-	userInfo := &services.UserInfo{
-		ID:        userID,
-		Email:     user.Email,
-		Username:  user.Username,
-		Name:      user.Name,
-		IsActive:  user.IsActive,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
-	updatedName := "Updated Lifecycle User"
-	updatedUserInfo := &services.UserInfo{
-		ID:        userID,
-		Email:     user.Email,
-		Username:  user.Username,
-		Name:      updatedName,
-		IsActive:  user.IsActive,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
-
-	suite.mockService.On("GetUserByID", suite.ctx, userID).Return(userInfo, nil).Once()
-	suite.mockService.On("UpdateUser", suite.ctx, userID, mock.Anything).Return(updatedUserInfo, nil).Once()
-	suite.mockService.On("ChangePassword", suite.ctx, userID, mock.Anything).Return(nil).Once()
-	suite.mockService.On("DeleteUser", suite.ctx, userID).Return(nil).Once()
-	suite.mockService.On("GetUserByID", suite.ctx, userID).Return(nil, errors.ErrUserNotFound).Once()
+	// Create
+	_, err := suite.mockRepo.Create(suite.ctx, user)
+	suite.NoError(err)
 
 	// Read
-	gotUserInfo, err := suite.mockService.GetUserByID(suite.ctx, userID)
+	userInfo, err := suite.userService.GetUserByID(suite.ctx, userID)
 	suite.NoError(err)
-	suite.Equal(user.Email, gotUserInfo.Email)
+	suite.Equal(user.Email, userInfo.Email)
 
 	// Update
-	newName := updatedName
+	newName := "Updated Lifecycle User"
 	updateReq := &services.UpdateUserRequest{Name: &newName}
-	gotUpdatedUserInfo, err := suite.mockService.UpdateUser(suite.ctx, userID, updateReq)
+
+	updatedUserInfo, err := suite.userService.UpdateUser(suite.ctx, userID, updateReq)
 	suite.NoError(err)
-	suite.Equal(newName, gotUpdatedUserInfo.Name)
+	suite.Equal(newName, updatedUserInfo.Name)
 
 	// Change password
+	suite.mockHasher.On("Hash", "newpassword123").Return("newhashedpassword", nil)
 	changePasswordReq := &services.ChangePasswordRequest{
 		CurrentPassword: testPassword,
 		NewPassword:     "newpassword123",
 	}
-	err = suite.mockService.ChangePassword(suite.ctx, userID, changePasswordReq)
+
+	err = suite.userService.ChangePassword(suite.ctx, userID, changePasswordReq)
 	suite.NoError(err)
 
 	// Delete
-	err = suite.mockService.DeleteUser(suite.ctx, userID)
+	err = suite.userService.DeleteUser(suite.ctx, userID)
 	suite.NoError(err)
 
 	// Verify deletion
-	_, err = suite.mockService.GetUserByID(suite.ctx, userID)
+	_, err = suite.userService.GetUserByID(suite.ctx, userID)
 	suite.Equal(errors.ErrUserNotFound, err)
 }

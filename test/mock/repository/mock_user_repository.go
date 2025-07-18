@@ -9,18 +9,44 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	testEmail       = "johndoe100@example.com"
+	testUsername    = "johndoe100"
+	testPassword    = "password123"
+	testName        = "John Doe 100"
+	updatedEmail    = "johndoeUPDATED@example.com"
+	updatedUsername = "johndoeUPDATED"
+	updatedName     = "John Doe Updated"
+)
+
 type MockUserRepository struct {
 	users map[uuid.UUID]*entity.User
 }
 
 func NewMockUserRepository() *MockUserRepository {
+	id := uuid.New()
 	return &MockUserRepository{
-		users: make(map[uuid.UUID]*entity.User),
+		users: map[uuid.UUID]*entity.User{
+			id: {
+				ID:       id,
+				Email:    testEmail,
+				Username: testUsername,
+				Password: "hashedpassword",
+				Name:     testName,
+				IsActive: true,
+				AuditInfo: entity.AuditInfo{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+					DeletedAt: nil,
+					IsDeleted: false,
+				},
+			},
+		},
 	}
 }
 
 func (r *MockUserRepository) Create(ctx context.Context, user *entity.User) (*entity.User, error) {
-	user, exists := r.users[user.ID]
+	_, exists := r.users[user.ID]
 	if exists {
 		return nil, errors.ErrUserAlreadyExists
 	}
@@ -55,7 +81,7 @@ func (r *MockUserRepository) FindByUsername(ctx context.Context, username string
 }
 
 func (r *MockUserRepository) Update(ctx context.Context, user *entity.User) (*entity.User, error) {
-	user, exists := r.users[user.ID]
+	_, exists := r.users[user.ID]
 	if !exists {
 		return nil, errors.ErrUserNotFound
 	}
