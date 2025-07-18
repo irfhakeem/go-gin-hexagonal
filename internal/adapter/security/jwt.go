@@ -1,13 +1,12 @@
 package security
 
 import (
-	"errors"
 	"time"
 
-	"go-gin-hexagonal/internal/domain/dto"
 	"go-gin-hexagonal/internal/domain/entity"
 	"go-gin-hexagonal/internal/domain/ports"
 	"go-gin-hexagonal/pkg/config"
+	"go-gin-hexagonal/pkg/errors"
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
@@ -31,7 +30,7 @@ func NewJWTToken(config config.JWTConfig) ports.TokenManager {
 
 func (tm *JWTToken) GenerateAccessToken(user *entity.User) (string, time.Time, error) {
 	expiryDate := time.Now().Add(tm.accessTokenExpiry)
-	domainClaims := &dto.AccessTokenClaims{
+	domainClaims := &ports.AccessTokenClaims{
 		UserID:    user.ID,
 		Email:     user.Email,
 		Username:  user.Username,
@@ -62,7 +61,7 @@ func (tm *JWTToken) GenerateAccessToken(user *entity.User) (string, time.Time, e
 
 func (tm *JWTToken) GenerateRefreshToken(userID uuid.UUID) (string, time.Time, error) {
 	expiryDate := time.Now().Add(tm.refreshTokenExpiry)
-	domainClaims := &dto.RefreshTokenClaims{
+	domainClaims := &ports.RefreshTokenClaims{
 		UserID:    userID,
 		TokenType: "refresh",
 		ExpiresAt: expiryDate,
@@ -87,10 +86,10 @@ func (tm *JWTToken) GenerateRefreshToken(userID uuid.UUID) (string, time.Time, e
 	return tokenString, expiryDate, err
 }
 
-func (tm *JWTToken) ValidateAccessToken(tokenString string) (*dto.AccessTokenClaims, error) {
+func (tm *JWTToken) ValidateAccessToken(tokenString string) (*ports.AccessTokenClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, ports.ErrUnexpectedSinginMethod
+			return nil, errors.ErrUnexpectedSinginMethod
 		}
 		return []byte(tm.accessTokenSecret), nil
 	})
@@ -102,17 +101,17 @@ func (tm *JWTToken) ValidateAccessToken(tokenString string) (*dto.AccessTokenCla
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		tokenType, ok := claims["token_type"].(string)
 		if !ok || tokenType != "access" {
-			return nil, ports.ErrTokenInvalid
+			return nil, errors.ErrTokenInvalid
 		}
 
 		userIDStr, ok := claims["user_id"].(string)
 		if !ok {
-			return nil, ports.ErrInvalidClaims
+			return nil, errors.ErrInvalidClaims
 		}
 
 		userID, err := uuid.Parse(userIDStr)
 		if err != nil {
-			return nil, ports.ErrInvalidIDFormat
+			return nil, errors.ErrInvalidIDFormat
 		}
 
 		email, _ := claims["email"].(string)
@@ -124,7 +123,7 @@ func (tm *JWTToken) ValidateAccessToken(tokenString string) (*dto.AccessTokenCla
 		issuedAt := time.Unix(int64(claims["issued_at"].(float64)), 0)
 		notBefore := time.Unix(int64(claims["not_before"].(float64)), 0)
 
-		return &dto.AccessTokenClaims{
+		return &ports.AccessTokenClaims{
 			UserID:    userID,
 			Email:     email,
 			Username:  username,
@@ -137,13 +136,13 @@ func (tm *JWTToken) ValidateAccessToken(tokenString string) (*dto.AccessTokenCla
 		}, nil
 	}
 
-	return nil, ports.ErrTokenInvalid
+	return nil, errors.ErrTokenInvalid
 }
 
-func (tm *JWTToken) ValidateRefreshToken(tokenString string) (*dto.RefreshTokenClaims, error) {
+func (tm *JWTToken) ValidateRefreshToken(tokenString string) (*ports.RefreshTokenClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("unexpected signing method")
+			return nil, errors.ErrUnexpectedSinginMethod
 		}
 		return []byte(tm.refreshTokenSecret), nil
 	})
@@ -155,17 +154,17 @@ func (tm *JWTToken) ValidateRefreshToken(tokenString string) (*dto.RefreshTokenC
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		tokenType, ok := claims["token_type"].(string)
 		if !ok || tokenType != "refresh" {
-			return nil, ports.ErrTokenInvalid
+			return nil, errors.ErrTokenInvalid
 		}
 
 		userIDStr, ok := claims["user_id"].(string)
 		if !ok {
-			return nil, ports.ErrInvalidClaims
+			return nil, errors.ErrInvalidClaims
 		}
 
 		userID, err := uuid.Parse(userIDStr)
 		if err != nil {
-			return nil, ports.ErrInvalidIDFormat
+			return nil, errors.ErrInvalidIDFormat
 		}
 
 		issuer, _ := claims["issuer"].(string)
@@ -175,7 +174,7 @@ func (tm *JWTToken) ValidateRefreshToken(tokenString string) (*dto.RefreshTokenC
 		issuedAt := time.Unix(int64(claims["issued_at"].(float64)), 0)
 		notBefore := time.Unix(int64(claims["not_before"].(float64)), 0)
 
-		return &dto.RefreshTokenClaims{
+		return &ports.RefreshTokenClaims{
 			UserID:    userID,
 			TokenType: tokenType,
 			ExpiresAt: expiresAt,
@@ -186,5 +185,5 @@ func (tm *JWTToken) ValidateRefreshToken(tokenString string) (*dto.RefreshTokenC
 		}, nil
 	}
 
-	return nil, ports.ErrTokenInvalid
+	return nil, errors.ErrTokenInvalid
 }

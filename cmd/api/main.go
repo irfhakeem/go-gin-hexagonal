@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	dbAdapter "go-gin-hexagonal/internal/adapter/database"
+	"go-gin-hexagonal/internal/adapter/database/gorm"
 	"go-gin-hexagonal/internal/adapter/http/handlers"
 	"go-gin-hexagonal/internal/adapter/http/middleware"
 	"go-gin-hexagonal/internal/adapter/http/routes"
@@ -19,7 +19,6 @@ import (
 	"go-gin-hexagonal/internal/domain/entity"
 
 	"go-gin-hexagonal/pkg/config"
-	"go-gin-hexagonal/pkg/database"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -40,15 +39,15 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	db, err := database.NewPostgresConnection(&cfg.Database)
+	db, err := gorm.NewPostgresConnection(&cfg.Database)
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
 
 	// Init adapters
 	// Database adapters
-	userRepo := dbAdapter.NewUserRepository(db, dbAdapter.NewBaseRepository[entity.User](db))
-	refreshTokenRepo := dbAdapter.NewRefreshTokenRepository(db, dbAdapter.NewBaseRepository[entity.RefreshToken](db))
+	userRepo := gorm.NewUserRepository(db, gorm.NewBaseRepository[entity.User](db))
+	refreshTokenRepo := gorm.NewRefreshTokenRepository(db, gorm.NewBaseRepository[entity.RefreshToken](db))
 
 	// Security adapters
 	passwordHasher := security.NewBcryptHasher()
