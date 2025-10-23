@@ -3,8 +3,8 @@ package http
 import (
 	"go-gin-clean/internal/adapters/primary/http/messages"
 	"go-gin-clean/internal/adapters/primary/http/response"
-	"go-gin-clean/internal/core/domain/errors"
-	"go-gin-clean/internal/core/ports"
+	domerr "go-gin-clean/internal/domain/error"
+	"go-gin-clean/internal/ports/secondary"
 	"net/http"
 	"strings"
 
@@ -12,10 +12,10 @@ import (
 )
 
 type AuthMiddleware struct {
-	jwtService ports.JWTService
+	jwtService secondary.JWTService
 }
 
-func NewAuthMiddleware(jwtService ports.JWTService) *AuthMiddleware {
+func NewAuthMiddleware(jwtService secondary.JWTService) *AuthMiddleware {
 	return &AuthMiddleware{
 		jwtService: jwtService,
 	}
@@ -25,27 +25,27 @@ func (m *AuthMiddleware) RequireAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			response.Error(c, messages.FAILED_AUTHENTICATION_REQUIRED, errors.ErrAuthHeaderMissing.Error(), http.StatusUnauthorized)
+			response.Error(c, messages.FAILED_AUTHENTICATION_REQUIRED, domerr.ErrAuthHeaderMissing.Error(), http.StatusUnauthorized)
 			c.Abort()
 			return
 		}
 
 		if !strings.HasPrefix(authHeader, "Bearer ") {
-			response.Error(c, messages.FAILED_INVALID_TOKEN_FORMAT, errors.ErrAuthHeaderMissing.Error(), http.StatusUnauthorized)
+			response.Error(c, messages.FAILED_INVALID_TOKEN_FORMAT, domerr.ErrAuthHeaderMissing.Error(), http.StatusUnauthorized)
 			c.Abort()
 			return
 		}
 
 		token := strings.TrimPrefix(authHeader, "Bearer ")
 		if token == "" {
-			response.Error(c, messages.FAILED_TOKEN_NOT_FOUND, errors.ErrTokenNotFound.Error(), http.StatusUnauthorized)
+			response.Error(c, messages.FAILED_TOKEN_NOT_FOUND, domerr.ErrTokenNotFound.Error(), http.StatusUnauthorized)
 			c.Abort()
 			return
 		}
 
 		claims, err := m.jwtService.ValidateAccessToken(token)
 		if err != nil {
-			response.Error(c, messages.FAILED_INVALID_TOKEN_FORMAT, errors.ErrTokenInvalid.Error(), http.StatusUnauthorized)
+			response.Error(c, messages.FAILED_INVALID_TOKEN_FORMAT, domerr.ErrTokenInvalid.Error(), http.StatusUnauthorized)
 			c.Abort()
 			return
 		}

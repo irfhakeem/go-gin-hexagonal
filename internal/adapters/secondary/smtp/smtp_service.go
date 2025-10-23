@@ -1,9 +1,9 @@
-package mailer
+package smtp
 
 import (
 	"bytes"
 	"fmt"
-	"go-gin-clean/internal/core/ports"
+	"go-gin-clean/internal/ports/secondary"
 	"go-gin-clean/pkg/config"
 	"os"
 	"path/filepath"
@@ -16,7 +16,7 @@ type SMTPService struct {
 	cfg *config.MailerConfig
 }
 
-func NewSMTPService(cfg *config.MailerConfig) ports.MailerService {
+func NewSMTPService(cfg *config.MailerConfig) secondary.MailerService {
 	return &SMTPService{cfg: cfg}
 }
 
@@ -43,7 +43,7 @@ func (s *SMTPService) SendEmail(to, subject, body string) error {
 }
 
 func (s *SMTPService) LoadTemplate(templateName string, data any) (string, error) {
-	templatePath := filepath.Join("internal", "adapters", "secondary", "mailer", "templates", templateName+".html")
+	templatePath := filepath.Join("internal", "adapters", "secondary", "smtp", "templates", templateName+".html")
 
 	if _, err := os.Stat(templatePath); os.IsNotExist(err) {
 		return "", fmt.Errorf("template file not found: %s", templatePath)

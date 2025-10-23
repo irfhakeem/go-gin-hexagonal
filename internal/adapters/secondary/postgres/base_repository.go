@@ -1,8 +1,8 @@
-package database
+package postgres
 
 import (
 	"context"
-	"go-gin-clean/internal/core/ports"
+	"go-gin-clean/internal/ports/secondary"
 
 	"gorm.io/gorm"
 )
@@ -11,7 +11,7 @@ type BaseRepository[T any] struct {
 	db *gorm.DB
 }
 
-func NewBaseRepository[T any](db *gorm.DB) ports.BaseRepository[T] {
+func NewBaseRepository[T any](db *gorm.DB) secondary.BaseRepository[T] {
 	return &BaseRepository[T]{db: db}
 }
 

@@ -1,8 +1,9 @@
 package dto
 
 import (
-	"go-gin-clean/internal/core/domain/enums"
 	"mime/multipart"
+
+	"go-gin-clean/internal/domain/model"
 )
 
 type (
@@ -11,7 +12,7 @@ type (
 		Name     string       `json:"name"`
 		Email    string       `json:"email"`
 		Avatar   string       `json:"avatar,omitempty"`
-		Gender   enums.Gender `json:"gender"`
+		Gender   model.Gender `json:"gender"`
 		IsActive bool         `json:"is_active"`
 	}
 
@@ -63,12 +64,12 @@ type (
 		Name     string       `json:"name" binding:"required"`
 		Email    string       `json:"email" binding:"required,email"`
 		Password string       `json:"password" binding:"required,min=8"`
-		Gender   enums.Gender `json:"gender,omitempty"`
+		Gender   model.Gender `json:"gender,omitempty"`
 	}
 
 	UpdateUserRequest struct {
 		Name   *string               `form:"name" binding:"omitempty"`
-		Gender *enums.Gender         `form:"gender" binding:"omitempty"`
+		Gender *model.Gender         `form:"gender" binding:"omitempty"`
 		Avatar *multipart.FileHeader `form:"avatar" binding:"omitempty"`
 	}
 )

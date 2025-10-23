@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"go-gin-clean/internal/core/domain/entities"
+	"go-gin-clean/internal/domain/model"
 	"go-gin-clean/pkg/config"
 
 	"github.com/joho/godotenv"
@@ -15,8 +15,8 @@ import (
 
 var (
 	models = []any{
-		&entities.User{},
-		&entities.RefreshToken{},
+		&model.User{},
+		&model.RefreshToken{},
 	}
 
 	enums = map[string][]string{

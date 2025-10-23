@@ -1,42 +1,55 @@
-# Go Gin Clean Architecture
+# Go Gin Hexagonal Architecture
 
-A complete Go web application implementing Clean Architecture principles with proper separation of concerns, dependency inversion, and framework-independent core business logic.
+A complete Go web application implementing **Hexagonal Architecture** (Ports and Adapters) with proper separation of concerns, dependency inversion, and framework-independent core business logic.
 
 ## 🏗️ Architecture Overview
 
-This project follows **Clean Architecture** principles with proper separation of concerns and framework independence. The core business logic is completely isolated from external dependencies:
+This project follows **Hexagonal Architecture** (also known as Ports and Adapters pattern) with strict adherence to the dependency rule. The domain is at the center, completely isolated from external dependencies:
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     Adapters Layer                          │
-├─────────────────────────┬───────────────────────────────────┤
-│    Primary (HTTP)       │       Secondary (Infrastructure)  │
-│                         │                                   │
-│  ┌─────────────────┐   │   ┌─────────────────────────────┐ │
-│  │ DTOs (Framework │   │   │ Database, SMTP, JWT,        │ │
-│  │ Specific)       │   │   │ Media Services              │ │
-│  └─────────────────┘   │   └─────────────────────────────┘ │
-│           │             │                                   │
-│  ┌─────────────────┐   │                                   │
-│  │ Mappers         │   │                                   │
-│  └─────────────────┘   │                                   │
-└─────────┬───────────────┴───────────────────────────────────┘
-          │ (Contracts)
-┌─────────▼───────────────────────────────────────────────────┐
-│                     Core Layer                              │
-├─────────────────────────────────────────────────────────────┤
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────┐ │
-│  │ Contracts       │  │ Use Cases       │  │ Entities    │ │
-│  │ (Clean DTOs)    │  │ (Business Logic)│  │ (Domain)    │ │
-│  └─────────────────┘  └─────────────────┘  └─────────────┘ │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                   PRIMARY ADAPTERS (Driving)                 │
+│              HTTP Handlers, Routes, Middleware               │
+└────────────────────────────┬─────────────────────────────────┘
+                             │
+                             ▼
+┌──────────────────────────────────────────────────────────────┐
+│                    PRIMARY PORTS (Driving)                   │
+│          Interfaces: UserUseCase, EmailUseCase               │
+└────────────────────────────┬─────────────────────────────────┘
+                             │
+                             ▼
+┌──────────────────────────────────────────────────────────────┐
+│                      DOMAIN (Core)                           │
+│   ┌────────────────────────────────────────────────────┐    │
+│   │  Domain Services (UserService, EmailService)       │    │
+│   │  ↓ uses                                            │    │
+│   │  Domain Models (User, RefreshToken, Gender)        │    │
+│   │  ↓ may throw                                       │    │
+│   │  Domain Errors (ErrUserNotFound, etc.)            │    │
+│   └────────────────────────────────────────────────────┘    │
+└────────────────────────────┬─────────────────────────────────┘
+                             │
+                             ▼
+┌──────────────────────────────────────────────────────────────┐
+│                   SECONDARY PORTS (Driven)                   │
+│     Interfaces: Repositories, JWT, Crypto, SMTP, Storage     │
+└────────────────────────────┬─────────────────────────────────┘
+                             │
+                             ▼
+┌──────────────────────────────────────────────────────────────┐
+│                  SECONDARY ADAPTERS (Driven)                 │
+│        Postgres, Crypto Services, SMTP, LocalStorage         │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 **Key Architectural Benefits:**
-- **Framework Independence**: Core layer has zero dependencies on HTTP frameworks, databases, or external libraries
-- **Testability**: Business logic can be tested in isolation with pure domain objects
-- **Flexibility**: Easy to swap HTTP frameworks (Gin → Fiber/Echo) or databases without affecting business logic
-- **Maintainability**: Clear boundaries and single responsibility for each layer
+- **Pure Domain**: Business logic has ZERO dependencies on frameworks, databases, or external libraries
+- **Dependency Inversion**: All dependencies point inward toward the domain
+- **Port-Driven Design**: Domain defines interfaces (ports), adapters implement them
+- **Testability**: Domain services can be tested with mock ports - no framework mocking required
+- **Flexibility**: Swap any adapter (HTTP→gRPC, Postgres→MongoDB) without changing domain
+- **Maintainability**: Clear boundaries, single responsibility, and explicit dependencies
 
 ## 📁 Project Structure
 
@@ -46,54 +59,76 @@ go-gin-clean/
 │   ├── server/main.go           # HTTP server
 │   └── migrate/main.go          # Database migrations
 ├── internal/                    # Private application code
-│   ├── core/                    # Core business logic (framework-independent)
-│   │   ├── contracts/           # Clean, framework-agnostic DTOs
-│   │   │   ├── user_contracts.go      # User-related contracts
-│   │   │   └── pagination_contracts.go # Pagination contracts
-│   │   ├── domain/              # Enterprise business rules
-│   │   │   ├── entities/        # Business entities (User, RefreshToken, Audit)
-│   │   │   ├── enums/           # Enumerations (Gender)
-│   │   │   └── errors/          # Domain errors
-│   │   ├── ports/               # Interfaces (use contracts, not DTOs)
-│   │   │   ├── repositories.go  # Repository interfaces
-│   │   │   ├── services.go      # Service interfaces
-│   │   │   └── usecases.go      # Use case interfaces
-│   │   └── usecases/            # Application business rules
-│   │       ├── user_usecase.go  # User business logic
-│   │       └── email_usecase.go # Email business logic
-│   ├── adapters/                # Adapters for external interfaces
-│   │   ├── primary/http/        # HTTP layer (framework-specific)
-│   │   │   ├── dto/             # HTTP DTOs with framework bindings
-│   │   │   │   ├── user_dto.go     # Gin-specific user DTOs
-│   │   │   │   └── pagination_dto.go # Gin-specific pagination DTOs
-│   │   │   ├── mappers/         # Convert DTOs ↔ Contracts
-│   │   │   │   ├── interfaces.go    # Mapper interfaces
-│   │   │   │   ├── user_mapper.go   # User mapping implementation
-│   │   │   │   └── pagination_mapper.go # Pagination mapping
-│   │   │   ├── handlers/        # HTTP handlers (use mappers)
-│   │   │   ├── messages/        # Response messages
-│   │   │   ├── response/        # Response utilities
-│   │   │   ├── middleware.go    # Authentication middleware
-│   │   │   └── routes.go        # Route definitions
-│   │   └── secondary/           # External service implementations
-│   │       ├── database/        # Database repositories
-│   │       ├── security/        # JWT, Bcrypt, AES services (use contracts)
-│   │       ├── mailer/          # SMTP email service
-│   │       └── media/           # Local storage service (framework-independent)
-│   └── infrastructure/          # Infrastructure concerns
-│       └── container.go         # Dependency injection
-└── pkg/                         # Public libraries
-    ├── config/                  # Configuration management
-    └── utils/                   # Utility functions
+│   ├── domain/                  # Domain Layer (Hexagon Core)
+│   │   ├── model/              # Domain entities
+│   │   │   ├── user.go         # User entity
+│   │   │   ├── refresh_token.go # RefreshToken entity
+│   │   │   ├── audit.go        # Audit fields
+│   │   │   └── gender.go       # Gender enum
+│   │   ├── service/            # Domain services (business logic)
+│   │   │   ├── user_service.go  # User business logic
+│   │   │   └── email_service.go # Email business logic
+│   │   └── error/              # Domain errors
+│   │       └── errors.go       # Business errors
+│   ├── ports/                  # Port Interfaces (Hexagon Boundary)
+│   │   ├── primary/            # Driving Ports (what app offers)
+│   │   │   ├── dto.go          # Shared DTOs for use cases
+│   │   │   └── user_port.go    # UserUseCase, EmailUseCase interfaces
+│   │   └── secondary/          # Driven Ports (what app needs)
+│   │       ├── repository.go   # Repository interfaces
+│   │       └── service.go      # External service interfaces
+│   ├── adapters/               # Adapter Implementations
+│   │   ├── primary/            # Driving Adapters (UI, API)
+│   │   │   └── http/           # HTTP adapter (Gin framework)
+│   │   │       ├── dto/        # HTTP-specific DTOs
+│   │   │       ├── handlers/   # HTTP handlers
+│   │   │       ├── mappers/    # DTO ↔ Domain mappers
+│   │   │       ├── messages/   # Response messages
+│   │   │       ├── response/   # Response utilities
+│   │   │       ├── middleware.go
+│   │   │       └── routes.go
+│   │   └── secondary/          # Driven Adapters (Infrastructure)
+│   │       ├── postgres/       # PostgreSQL implementation
+│   │       │   ├── base_repository.go
+│   │       │   ├── user_repository.go
+│   │       │   └── refresh_token_repository.go
+│   │       ├── crypto/         # Cryptography services
+│   │       │   ├── jwt_service.go
+│   │       │   ├── bcrypt_service.go
+│   │       │   └── aes_service.go
+│   │       ├── smtp/           # Email service
+│   │       │   ├── smtp_service.go
+│   │       │   └── templates/
+│   │       └── localstorage/   # File storage service
+│   │           └── localstorage_service.go
+│   └── infrastructure/         # Infrastructure concerns
+│       └── container.go        # Dependency injection
+└── pkg/                        # Public libraries
+    ├── config/                 # Configuration management
+    └── utils/                  # Utility functions
 ```
 
-**Layer Responsibilities:**
-- **Core/Contracts**: Clean data structures for inter-layer communication
-- **Core/Domain**: Pure business entities and rules (no external dependencies)
-- **Core/Ports**: Interfaces defining contracts between layers
-- **Core/UseCases**: Business logic using contracts for communication
-- **Adapters/Primary/HTTP**: Web layer with framework-specific DTOs and mappers
-- **Adapters/Secondary**: Infrastructure implementations (database, services)
+**Hexagonal Architecture Layers:**
+
+1. **Domain (Core)**
+   - **Models**: Pure business entities (User, RefreshToken)
+   - **Services**: Business logic orchestrating entities
+   - **Errors**: Domain-specific errors
+   - ❗ **Zero external dependencies**
+
+2. **Ports (Interfaces)**
+   - **Primary Ports**: Interfaces for use cases (what application offers)
+   - **Secondary Ports**: Interfaces for repositories/services (what application needs)
+   - ❗ **Defined by domain, implemented by adapters**
+
+3. **Adapters**
+   - **Primary Adapters**: HTTP handlers, CLI, gRPC (driving the app)
+   - **Secondary Adapters**: Database, SMTP, file storage (driven by the app)
+   - ❗ **Implement port interfaces, depend on domain**
+
+4. **Infrastructure**
+   - Dependency injection and wiring
+   - Application configuration
 
 ## 🚀 Quick Start
 
@@ -239,65 +274,75 @@ go test ./...
 go vet ./...
 ```
 
-## 🏛️ Clean Architecture Benefits
+## 🏛️ Hexagonal Architecture Benefits
 
-### 1. **Framework Independence**
+### 1. **Domain Independence**
 
-- Core business logic has **zero dependencies** on Gin, HTTP, or external frameworks
-- Easy to switch from Gin to Fiber, Echo, or any other HTTP framework
-- Business rules remain unchanged when external dependencies change
-- **Contracts layer** ensures clean communication between layers
+- Domain has **ZERO dependencies** on frameworks, HTTP, databases, or external libraries
+- Business logic is pure Go code with only domain model dependencies
+- Easy to test domain services with simple mock interfaces
+- **Port interfaces** define what domain needs, adapters provide implementations
 
-### 2. **Testability**
+### 2. **Dependency Inversion**
 
-- Use cases can be tested with pure domain objects (no mocking of framework types)
-- **Mappers** can be unit tested independently
-- Business logic isolated from HTTP concerns and database specifics
-- Mock interfaces at the ports level for comprehensive testing
+- All dependencies point **inward** toward the domain
+- Domain defines interfaces (ports), infrastructure implements them
+- Framework changes don't affect business logic
+- Can swap Gin for Fiber/Echo without touching domain code
 
-### 3. **Maintainability**
+### 3. **Testability**
 
-- **Clear separation**: DTOs (HTTP layer) vs Contracts (domain layer)
-- **Single Responsibility**: Each layer has a specific, well-defined purpose
-- **Dependency Rule**: Inner layers never depend on outer layers
-- Easy to understand, modify, and extend
+- Domain services tested with simple port mocks
+- No need to mock framework-specific types (no `*gin.Context` in tests)
+- Unit test business logic in isolation
+- Integration test adapters independently
 
 ### 4. **Flexibility & Scalability**
 
-- **Plug-and-play architecture**: Swap implementations without affecting business logic
-- **Mapper pattern**: Clean conversion between external data formats and domain contracts
-- Add new delivery mechanisms (GraphQL, gRPC) without changing use cases
+- **Plug-and-play architecture**: Swap any adapter without domain changes
+- Add new delivery mechanisms (GraphQL, gRPC, CLI) alongside HTTP
+- Switch databases (Postgres → MongoDB) by implementing port interface
 - Horizontal scaling through clear component boundaries
 
-### 5. **Domain-Driven Design**
+### 5. **Explicit Boundaries**
 
-- **Pure domain entities** with no external dependencies
-- **Contracts** represent the true business data structures
-- Business rules concentrated in the use case layer
-- Framework concerns isolated in adapter layers
+- **Primary Adapters** (HTTP, gRPC) → drive the application
+- **Primary Ports** (UserUseCase) → what application offers
+- **Domain Services** (UserService) → business logic
+- **Secondary Ports** (UserRepository, JWTService) → what application needs
+- **Secondary Adapters** (Postgres, Crypto) → infrastructure implementations
 
 ## 🧪 Testing
 
-The Clean Architecture with contracts makes testing straightforward and framework-independent:
+The Hexagonal Architecture makes testing straightforward with clear boundaries:
 
-### Use Case Testing (Pure Business Logic)
+### Domain Service Testing (Pure Business Logic)
 ```go
-// Test use cases with contracts - no framework dependencies
-func TestUserUseCase_Login(t *testing.T) {
+// Test domain services with port mocks - no framework dependencies
+func TestUserService_Login(t *testing.T) {
     // Arrange
     mockUserRepo := &mocks.UserRepository{}
     mockJWTService := &mocks.JWTService{}
     mockBcryptService := &mocks.BcryptService{}
+    // ... other mocked ports
 
-    useCase := usecases.NewUserUseCase(mockUserRepo, mockJWTService, mockBcryptService)
+    userService := service.NewUserService(
+        mockUserRepo,
+        mockEmailService,
+        mockRefreshTokenRepo,
+        mockJWTService,
+        mockBcryptService,
+        mockAESService,
+        mockMediaService,
+    )
 
-    loginReq := &contracts.LoginRequest{
+    loginReq := &primary.LoginRequest{
         Email:    "test@example.com",
         Password: "password123",
     }
 
     // Act
-    result, err := useCase.Login(context.Background(), loginReq)
+    result, err := userService.Login(context.Background(), loginReq)
 
     // Assert - pure domain testing
     assert.NoError(t, err)
@@ -305,34 +350,61 @@ func TestUserUseCase_Login(t *testing.T) {
 }
 ```
 
-### Mapper Testing (Conversion Logic)
+### Adapter Testing (Repository)
 ```go
-// Test mappers independently
-func TestUserMapper_LoginRequestToContract(t *testing.T) {
-    mapper := mappers.NewUserMapper()
+// Test postgres adapter with real database or testcontainers
+func TestUserRepository_FindByEmail(t *testing.T) {
+    db := setupTestDB(t)
+    userRepo := postgres.NewUserRepository(db)
 
-    dtoReq := &dto.LoginRequest{
-        Email:    "test@example.com",
-        Password: "password123",
+    user := &model.User{
+        Name:  "Test User",
+        Email: "test@example.com",
     }
 
-    contractReq := mapper.LoginRequestToContract(dtoReq)
+    // Test repository implementation
+    savedUser, err := userRepo.Create(context.Background(), user)
+    assert.NoError(t, err)
 
-    assert.Equal(t, dtoReq.Email, contractReq.Email)
-    assert.Equal(t, dtoReq.Password, contractReq.Password)
+    foundUser, err := userRepo.FindByEmail(context.Background(), "test@example.com")
+    assert.NoError(t, err)
+    assert.Equal(t, savedUser.ID, foundUser.ID)
 }
 ```
 
-### Handler Testing (HTTP Layer)
+### HTTP Handler Testing
 ```go
-// Test handlers with mocked mappers and use cases
+// Test HTTP handlers with mocked use cases
 func TestUserHandler_Login(t *testing.T) {
     mockUseCase := &mocks.UserUseCase{}
-    mockMapper := &mocks.UserMapper{}
+    mockMapper := mappers.NewUserMapper()
 
     handler := handlers.NewUserHandler(mockUseCase, mockMapper)
 
-    // Test HTTP concerns separately from business logic
+    // Setup Gin test context
+    w := httptest.NewRecorder()
+    c, _ := gin.CreateTestContext(w)
+
+    // Test HTTP layer separately from business logic
+    handler.Login(c)
+
+    assert.Equal(t, http.StatusOK, w.Code)
+}
+```
+
+### Port Interface Mocking
+```go
+// Easy to create mocks for port interfaces
+type MockUserRepository struct {
+    mock.Mock
+}
+
+func (m *MockUserRepository) FindByEmail(ctx context.Context, email string) (*model.User, error) {
+    args := m.Called(ctx, email)
+    if args.Get(0) == nil {
+        return nil, args.Error(1)
+    }
+    return args.Get(0).(*model.User), args.Error(1)
 }
 ```
 
@@ -398,69 +470,154 @@ Local file storage implementation:
 
 ## 🛠️ Development Guidelines
 
-### Adding New Features (Clean Architecture Flow)
+### Adding New Features (Hexagonal Architecture Flow)
 
-1. **Start with Domain**: Define entities, value objects, and domain rules in `internal/core/domain/`
-2. **Create Contracts**: Define clean data structures in `internal/core/contracts/`
-3. **Define Ports**: Create interfaces in `internal/core/ports/` using contracts (not DTOs)
-4. **Implement Use Cases**: Add business logic in `internal/core/usecases/` using contracts
-5. **Create Secondary Adapters**: Implement infrastructure services in `internal/adapters/secondary/`
-6. **Add HTTP DTOs**: Create framework-specific DTOs in `internal/adapters/primary/http/dto/`
-7. **Create Mappers**: Build mappers in `internal/adapters/primary/http/mappers/` to convert DTOs ↔ Contracts
-8. **Add HTTP Handlers**: Create handlers in `internal/adapters/primary/http/handlers/` using mappers
-9. **Wire Dependencies**: Update `internal/infrastructure/container.go`
-10. **Update Routes**: Add new routes in `internal/adapters/primary/http/routes.go`
+1. **Define Domain Models**: Create or update entities in `internal/domain/model/`
+   ```go
+   // internal/domain/model/product.go
+   type Product struct {
+       ID    int64
+       Name  string
+       Price float64
+   }
+   ```
+
+2. **Define Secondary Ports**: Create interfaces for what domain needs in `internal/ports/secondary/`
+   ```go
+   // internal/ports/secondary/repository.go
+   type ProductRepository interface {
+       FindByID(ctx context.Context, id int64) (*model.Product, error)
+       Create(ctx context.Context, product *model.Product) (*model.Product, error)
+   }
+   ```
+
+3. **Define Primary Ports**: Create use case interfaces in `internal/ports/primary/`
+   ```go
+   // internal/ports/primary/product_port.go
+   type ProductUseCase interface {
+       GetProduct(ctx context.Context, id int64) (*ProductInfo, error)
+       CreateProduct(ctx context.Context, req *CreateProductRequest) (*ProductInfo, error)
+   }
+   ```
+
+4. **Implement Domain Service**: Add business logic in `internal/domain/service/`
+   ```go
+   // internal/domain/service/product_service.go
+   type ProductService struct {
+       productRepo secondary.ProductRepository
+   }
+
+   func (s *ProductService) GetProduct(ctx context.Context, id int64) (*primary.ProductInfo, error) {
+       product, err := s.productRepo.FindByID(ctx, id)
+       // ... business logic
+   }
+   ```
+
+5. **Implement Secondary Adapters**: Create infrastructure in `internal/adapters/secondary/`
+   ```go
+   // internal/adapters/secondary/postgres/product_repository.go
+   type ProductRepository struct {
+       db *gorm.DB
+   }
+
+   func (r *ProductRepository) FindByID(ctx context.Context, id int64) (*model.Product, error) {
+       // Postgres implementation
+   }
+   ```
+
+6. **Implement Primary Adapters**: Create HTTP handlers in `internal/adapters/primary/http/`
+   ```go
+   // internal/adapters/primary/http/handlers/product_handler.go
+   type ProductHandler struct {
+       productUseCase primary.ProductUseCase
+   }
+   ```
+
+7. **Wire Dependencies**: Update `internal/infrastructure/container.go`
+   ```go
+   productRepo := postgres.NewProductRepository(db)
+   productUseCase := service.NewProductService(productRepo)
+   ```
+
+8. **Add Routes**: Register in `internal/adapters/primary/http/routes.go`
 
 ### Architecture Rules
 
-- **Dependency Rule**: Core layer NEVER imports from adapters layer
-- **Use Contracts**: Use cases communicate via contracts, never DTOs
-- **Map at Boundaries**: Convert DTOs to contracts at the HTTP boundary using mappers
-- **Framework Isolation**: Keep framework-specific code (Gin, GORM) in adapters layer only
+1. **Dependency Rule**: Dependencies ALWAYS point inward
+   - ✅ Domain → nothing (pure business logic)
+   - ✅ Ports → Domain (interfaces reference domain models)
+   - ✅ Services → Ports (services implement primary ports, use secondary ports)
+   - ✅ Adapters → Ports + Domain (adapters implement ports)
+   - ❌ Domain → Ports/Adapters (NEVER)
+
+2. **Port Ownership**
+   - Domain **defines** secondary ports (what it needs)
+   - Domain **implements** primary ports (what it offers)
+   - Adapters **implement** secondary ports
+   - Adapters **use** primary ports
+
+3. **Framework Isolation**
+   - Gin, GORM, HTTP types → stay in adapters
+   - Domain has no `*gin.Context`, `*gorm.DB`, etc.
+   - Use plain Go types in domain
+
+4. **Testing Strategy**
+   - Domain services: Mock secondary ports
+   - Adapters: Test with real dependencies or testcontainers
+   - HTTP layer: Mock primary ports (use cases)
 
 ### Error Handling
 
-- **Domain errors** defined in `internal/core/domain/errors/`
-- **Contract-based** error handling in use cases
-- **HTTP-specific** error responses in `internal/adapters/primary/http/messages/`
-- **Consistent format** across all API endpoints
+- **Domain errors** in `internal/domain/error/` (business rules)
+  ```go
+  var ErrUserNotFound = errors.New("user not found")
+  var ErrEmailAlreadyExists = errors.New("email already exists")
+  ```
+- **Adapter errors**: Wrap/translate infrastructure errors
+- **HTTP errors**: Convert domain errors to HTTP responses
 
-### Layer Communication
+### Layer Communication Flow
 
 ```go
-// ❌ Wrong - Use case importing DTO
-func (uc *UserUseCase) Login(req *dto.LoginRequest) error
+// ❌ WRONG - Domain importing from adapter
+package service
+import "go-gin-clean/internal/adapters/secondary/postgres"
 
-// ✅ Correct - Use case using contracts
-func (uc *UserUseCase) Login(req *contracts.LoginRequest) error
+// ✅ CORRECT - Domain importing only ports
+package service
+import "go-gin-clean/internal/ports/secondary"
 
-// ❌ Wrong - Handler calling use case directly with DTO
-result, err := h.userUseCase.Login(&req)
+// ❌ WRONG - Domain using framework types
+func (s *UserService) Login(c *gin.Context) error
 
-// ✅ Correct - Handler using mapper
-contractReq := h.userMapper.LoginRequestToContract(&req)
-contractResult, err := h.userUseCase.Login(contractReq)
-result := h.userMapper.LoginResponseToDTO(contractResult)
+// ✅ CORRECT - Domain using domain/port types
+func (s *UserService) Login(ctx context.Context, req *primary.LoginRequest) (*primary.LoginResponse, error)
+
+// ❌ WRONG - Adapter bypassing ports
+handler → domain service directly
+
+// ✅ CORRECT - Adapter through ports
+handler → primary port interface → domain service → secondary port interface → adapter
 ```
 
-### Current Service Implementations
+### Current Implementation Overview
 
-**Core Services (Framework-Independent):**
-- **UserUseCase**: Business logic using contracts for all operations
-- **EmailUseCase**: Email verification and password reset workflows
-- **Contracts**: Clean data structures (LoginRequest, UserInfo, etc.)
+**Domain Layer:**
+- `model.User`, `model.RefreshToken`, `model.Gender` - Domain entities
+- `service.UserService` - User business logic
+- `service.EmailService` - Email business logic
+- `error.Err*` - Business errors
 
-**Infrastructure Services (Framework-Specific):**
-- **JWTService**: Token generation/validation using contracts
-- **BcryptService**: Password hashing
-- **EncryptionService**: AES encryption/decryption
-- **MailerService**: SMTP email with HTML templates
-- **MediaService**: File storage with framework-independent interface
+**Ports:**
+- `primary.UserUseCase`, `primary.EmailUseCase` - What app offers
+- `secondary.UserRepository`, `secondary.JWTService`, etc. - What app needs
 
-**HTTP Services:**
-- **Mappers**: Convert between HTTP DTOs and domain contracts
-- **Handlers**: HTTP request/response handling using mappers
-- **DTOs**: Gin-specific data structures with binding tags
+**Adapters:**
+- `postgres.*Repository` - Database implementations
+- `crypto.*Service` - Security service implementations
+- `smtp.SMTPService` - Email service implementation
+- `localstorage.LocalStorageService` - File storage implementation
+- `http.Handler` - HTTP request handlers
 
 ## 📈 Performance & Production
 

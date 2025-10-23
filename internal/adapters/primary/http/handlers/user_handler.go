@@ -1,23 +1,24 @@
 package handlers
 
 import (
+	"net/http"
+	"strconv"
+
 	"go-gin-clean/internal/adapters/primary/http/dto"
 	"go-gin-clean/internal/adapters/primary/http/mappers"
 	"go-gin-clean/internal/adapters/primary/http/messages"
 	"go-gin-clean/internal/adapters/primary/http/response"
-	"go-gin-clean/internal/core/ports"
-	"net/http"
-	"strconv"
+	"go-gin-clean/internal/ports/primary"
 
 	"github.com/gin-gonic/gin"
 )
 
 type UserHandler struct {
-	userUseCase ports.UserUseCase
+	userUseCase primary.UserUseCase
 	userMapper  mappers.UserMapper
 }
 
-func NewUserHandler(userUseCase ports.UserUseCase, userMapper mappers.UserMapper) *UserHandler {
+func NewUserHandler(userUseCase primary.UserUseCase, userMapper mappers.UserMapper) *UserHandler {
 	return &UserHandler{
 		userUseCase: userUseCase,
 		userMapper:  userMapper,

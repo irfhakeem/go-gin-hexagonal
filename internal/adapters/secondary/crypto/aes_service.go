@@ -1,4 +1,4 @@
-package security
+package crypto
 
 import (
 	"bytes"
@@ -6,7 +6,7 @@ import (
 	"crypto/cipher"
 	"encoding/base64"
 	"fmt"
-	"go-gin-clean/internal/core/ports"
+	"go-gin-clean/internal/ports/secondary"
 	"go-gin-clean/pkg/config"
 )
 
@@ -15,7 +15,7 @@ type AESService struct {
 	IV  []byte
 }
 
-func NewAESService(cfg *config.AESConfig) ports.EncryptionService {
+func NewAESService(cfg *config.AESConfig) secondary.EncryptionService {
 	return &AESService{
 		Key: []byte(cfg.Key),
 		IV:  []byte(cfg.IV),

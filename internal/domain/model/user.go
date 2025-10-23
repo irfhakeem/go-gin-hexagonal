@@ -1,17 +1,13 @@
-package entities
-
-import (
-	"go-gin-clean/internal/core/domain/enums"
-)
+package model
 
 type User struct {
-	ID       int64        `json:"id" gorm:"primaryKey;autoIncrement"`
-	Name     string       `json:"name" gorm:"not null"`
-	Email    string       `json:"email" gorm:"uniqueIndex;not null"`
-	Password string       `json:"password" gorm:"not null"`
-	Avatar   string       `json:"avatar" gorm:"default:''"`
-	Gender   enums.Gender `json:"gender" gorm:"type:gender;default:null"`
-	IsActive bool         `json:"is_active" gorm:"default:false;not null"`
+	ID       int64  `json:"id" gorm:"primaryKey;autoIncrement"`
+	Name     string `json:"name" gorm:"not null"`
+	Email    string `json:"email" gorm:"uniqueIndex;not null"`
+	Password string `json:"password" gorm:"not null"`
+	Avatar   string `json:"avatar" gorm:"default:''"`
+	Gender   Gender `json:"gender" gorm:"type:gender;default:null"`
+	IsActive bool   `json:"is_active" gorm:"default:false;not null"`
 
 	Audit
 }
@@ -20,7 +16,7 @@ func (User) TableName() string {
 	return "users"
 }
 
-func NewUser(name, email, password, avatar string, Gender enums.Gender) (*User, error) {
+func NewUser(name, email, password, avatar string, Gender Gender) (*User, error) {
 	return &User{
 		Name:     name,
 		Email:    email,
@@ -48,7 +44,7 @@ func (u *User) ChangePassword(newPassword string) error {
 	return nil
 }
 
-func (u *User) UpdateProfile(name, avatar string, gender enums.Gender) {
+func (u *User) UpdateProfile(name, avatar string, gender Gender) {
 	if name != "" {
 		u.Name = name
 	}

@@ -1,43 +1,53 @@
 package infrastructure
 
 import (
-	"go-gin-clean/internal/adapters/secondary/database"
-	"go-gin-clean/internal/adapters/secondary/mailer"
-	"go-gin-clean/internal/adapters/secondary/media"
-	"go-gin-clean/internal/adapters/secondary/security"
-	"go-gin-clean/internal/core/ports"
-	"go-gin-clean/internal/core/usecases"
+	"go-gin-clean/internal/adapters/secondary/crypto"
+	"go-gin-clean/internal/adapters/secondary/localstorage"
+	"go-gin-clean/internal/adapters/secondary/postgres"
+	"go-gin-clean/internal/adapters/secondary/smtp"
+	"go-gin-clean/internal/domain/service"
+	"go-gin-clean/internal/ports/primary"
+	"go-gin-clean/internal/ports/secondary"
 	"go-gin-clean/pkg/config"
 
 	"gorm.io/gorm"
 )
 
 type Container struct {
-	UserUseCase   ports.UserUseCase
-	EmailUseCase  ports.EmailUseCase
-	JWTService    ports.JWTService
-	MailerService ports.MailerService
+	UserUseCase   primary.UserUseCase
+	EmailUseCase  primary.EmailUseCase
+	JWTService    secondary.JWTService
+	MailerService secondary.MailerService
 }
 
 func NewContainer(db *gorm.DB, cfg *config.Config) *Container {
 	// Init repositories
-	userRepo := database.NewUserRepository(db)
-	refreshTokenRepo := database.NewRefreshTokenRepository(db)
+	userRepo := postgres.NewUserRepository(db)
+	refreshTokenRepo := postgres.NewRefreshTokenRepository(db)
 
-	// Init services
-	jwtService := security.NewJWTService(&cfg.JWT)
-	bcryptService := security.NewBcryptService()
-	aesService := security.NewAESService(&cfg.AES)
-	smtpService := mailer.NewSMTPService(&cfg.Mailer)
-	localStorageService := media.NewLocalStorageService()
+	// Init services (secondary adapters)
+	jwtService := crypto.NewJWTService(&cfg.JWT)
+	bcryptService := crypto.NewBcryptService()
+	aesService := crypto.NewAESService(&cfg.AES)
+	smtpService := smtp.NewSMTPService(&cfg.Mailer)
+	localStorageService := localstorage.NewLocalStorageService()
 
-	// Init use cases
-	emailUseCase := usecases.NewEmailUseCase(smtpService)
-	userUseCase := usecases.NewUserUseCase(userRepo, emailUseCase, refreshTokenRepo, jwtService, bcryptService, aesService, localStorageService)
+	// Init use cases (domain services)
+	emailUseCase := service.NewEmailService(smtpService)
+	userUseCase := service.NewUserService(
+		userRepo,
+		emailUseCase,
+		refreshTokenRepo,
+		jwtService,
+		bcryptService,
+		aesService,
+		localStorageService,
+	)
 
 	return &Container{
-		UserUseCase:  userUseCase,
-		EmailUseCase: emailUseCase,
-		JWTService:   jwtService,
+		UserUseCase:   userUseCase,
+		EmailUseCase:  emailUseCase,
+		JWTService:    jwtService,
+		MailerService: smtpService,
 	}
 }

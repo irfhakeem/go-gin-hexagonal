@@ -3,15 +3,16 @@ package http
 import (
 	"go-gin-clean/internal/adapters/primary/http/handlers"
 	"go-gin-clean/internal/adapters/primary/http/mappers"
-	"go-gin-clean/internal/core/ports"
+	"go-gin-clean/internal/ports/primary"
+	"go-gin-clean/internal/ports/secondary"
 
 	"github.com/gin-gonic/gin"
 )
 
 func SetupRoutes(
 	router *gin.Engine,
-	userUseCase ports.UserUseCase,
-	jwtService ports.JWTService,
+	userUseCase primary.UserUseCase,
+	jwtService secondary.JWTService,
 ) {
 	// Setup mappers
 	userMapper := mappers.NewUserMapper()

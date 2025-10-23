@@ -5,7 +5,7 @@ import (
 	"io"
 
 	"go-gin-clean/internal/adapters/primary/http/dto"
-	"go-gin-clean/internal/core/contracts"
+	"go-gin-clean/internal/ports/primary"
 )
 
 // userMapper implements the UserMapper interface
@@ -17,37 +17,37 @@ func NewUserMapper() UserMapper {
 }
 
 // DTO to Contract mappings
-func (m *userMapper) LoginRequestToContract(req *dto.LoginRequest) *contracts.LoginRequest {
-	return &contracts.LoginRequest{
+func (m *userMapper) LoginRequestToContract(req *dto.LoginRequest) *primary.LoginRequest {
+	return &primary.LoginRequest{
 		Email:    req.Email,
 		Password: req.Password,
 	}
 }
 
-func (m *userMapper) RegisterRequestToContract(req *dto.RegisterRequest) *contracts.RegisterRequest {
-	return &contracts.RegisterRequest{
+func (m *userMapper) RegisterRequestToContract(req *dto.RegisterRequest) *primary.RegisterRequest {
+	return &primary.RegisterRequest{
 		Name:     req.Name,
 		Email:    req.Email,
 		Password: req.Password,
 	}
 }
 
-func (m *userMapper) ResetPasswordRequestToContract(req *dto.ResetPasswordRequest) *contracts.ResetPasswordRequest {
-	return &contracts.ResetPasswordRequest{
+func (m *userMapper) ResetPasswordRequestToContract(req *dto.ResetPasswordRequest) *primary.ResetPasswordRequest {
+	return &primary.ResetPasswordRequest{
 		Token:       req.Token,
 		NewPassword: req.NewPassword,
 	}
 }
 
-func (m *userMapper) ChangePasswordRequestToContract(req *dto.ChangePasswordRequest) *contracts.ChangePasswordRequest {
-	return &contracts.ChangePasswordRequest{
+func (m *userMapper) ChangePasswordRequestToContract(req *dto.ChangePasswordRequest) *primary.ChangePasswordRequest {
+	return &primary.ChangePasswordRequest{
 		OldPassword: req.OldPassword,
 		NewPassword: req.NewPassword,
 	}
 }
 
-func (m *userMapper) CreateUserRequestToContract(req *dto.CreateUserRequest) *contracts.CreateUserRequest {
-	return &contracts.CreateUserRequest{
+func (m *userMapper) CreateUserRequestToContract(req *dto.CreateUserRequest) *primary.CreateUserRequest {
+	return &primary.CreateUserRequest{
 		Name:     req.Name,
 		Email:    req.Email,
 		Password: req.Password,
@@ -55,13 +55,13 @@ func (m *userMapper) CreateUserRequestToContract(req *dto.CreateUserRequest) *co
 	}
 }
 
-func (m *userMapper) UpdateUserRequestToContract(req *dto.UpdateUserRequest) *contracts.UpdateUserRequest {
-	contractReq := &contracts.UpdateUserRequest{
+func (m *userMapper) UpdateUserRequestToContract(req *dto.UpdateUserRequest) *primary.UpdateUserRequest {
+	contractReq := &primary.UpdateUserRequest{
 		Name:   req.Name,
 		Gender: req.Gender,
 	}
 
-	// Convert multipart.FileHeader to contracts.FileUpload
+	// Convert multipart.FileHeader to primary.FileUpload
 	if req.Avatar != nil {
 		file, err := req.Avatar.Open()
 		if err == nil {
@@ -71,7 +71,7 @@ func (m *userMapper) UpdateUserRequestToContract(req *dto.UpdateUserRequest) *co
 			buf := new(bytes.Buffer)
 			io.Copy(buf, file)
 
-			contractReq.Avatar = &contracts.FileUpload{
+			contractReq.Avatar = &primary.FileUpload{
 				Filename: req.Avatar.Filename,
 				Size:     req.Avatar.Size,
 				Content:  bytes.NewReader(buf.Bytes()),
@@ -82,8 +82,8 @@ func (m *userMapper) UpdateUserRequestToContract(req *dto.UpdateUserRequest) *co
 	return contractReq
 }
 
-func (m *userMapper) PaginationRequestToContract(req *dto.PaginationRequest) *contracts.PaginationRequest {
-	return &contracts.PaginationRequest{
+func (m *userMapper) PaginationRequestToContract(req *dto.PaginationRequest) *primary.PaginationRequest {
+	return &primary.PaginationRequest{
 		Page:    req.Page,
 		PerPage: req.PerPage,
 		Search:  req.Search,
@@ -91,7 +91,7 @@ func (m *userMapper) PaginationRequestToContract(req *dto.PaginationRequest) *co
 }
 
 // Contract to DTO mappings
-func (m *userMapper) LoginResponseToDTO(resp *contracts.LoginResponse) *dto.LoginResponse {
+func (m *userMapper) LoginResponseToDTO(resp *primary.LoginResponse) *dto.LoginResponse {
 	return &dto.LoginResponse{
 		AccessToken:  resp.AccessToken,
 		RefreshToken: resp.RefreshToken,
@@ -99,14 +99,14 @@ func (m *userMapper) LoginResponseToDTO(resp *contracts.LoginResponse) *dto.Logi
 	}
 }
 
-func (m *userMapper) RefreshTokenResponseToDTO(resp *contracts.RefreshTokenResponse) *dto.RefreshTokenResponse {
+func (m *userMapper) RefreshTokenResponseToDTO(resp *primary.RefreshTokenResponse) *dto.RefreshTokenResponse {
 	return &dto.RefreshTokenResponse{
 		AccessToken:  resp.AccessToken,
 		RefreshToken: resp.RefreshToken,
 	}
 }
 
-func (m *userMapper) UserInfoToDTO(user *contracts.UserInfo) *dto.UserInfo {
+func (m *userMapper) UserInfoToDTO(user *primary.UserInfo) *dto.UserInfo {
 	return &dto.UserInfo{
 		ID:       user.ID,
 		Name:     user.Name,
@@ -117,7 +117,7 @@ func (m *userMapper) UserInfoToDTO(user *contracts.UserInfo) *dto.UserInfo {
 	}
 }
 
-func (m *userMapper) PaginationResponseToDTO(resp *contracts.PaginationResponse[contracts.UserInfo]) *dto.PaginationResponse[dto.UserInfo] {
+func (m *userMapper) PaginationResponseToDTO(resp *primary.PaginationResponse[primary.UserInfo]) *dto.PaginationResponse[dto.UserInfo] {
 	dtoUsers := make([]dto.UserInfo, len(resp.Data))
 	for i, user := range resp.Data {
 		dtoUsers[i] = *m.UserInfoToDTO(&user)

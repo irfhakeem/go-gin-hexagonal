@@ -1,23 +1,23 @@
-package usecases
+package service
 
 import (
 	"fmt"
-	"go-gin-clean/internal/core/ports"
+	"go-gin-clean/internal/ports/secondary"
 )
 
-type EmailUseCase struct {
+type EmailService struct {
 	application string
-	smtp        ports.MailerService
+	smtp        secondary.MailerService
 }
 
-func NewEmailUseCase(smtp ports.MailerService) ports.EmailUseCase {
-	return &EmailUseCase{
+func NewEmailService(smtp secondary.MailerService) *EmailService {
+	return &EmailService{
 		application: "Go Gin Clean App",
 		smtp:        smtp,
 	}
 }
 
-func (e *EmailUseCase) SendVerifyEmail(to, name, url string) error {
+func (e *EmailService) SendVerifyEmail(to, name, url string) error {
 	subject := fmt.Sprintf("Verify User %s Email", e.application)
 
 	data := map[string]any{
@@ -33,7 +33,7 @@ func (e *EmailUseCase) SendVerifyEmail(to, name, url string) error {
 	return e.smtp.SendEmail(to, subject, body)
 }
 
-func (e *EmailUseCase) SendResetPasswordEmail(to, name, url string) error {
+func (e *EmailService) SendResetPasswordEmail(to, name, url string) error {
 	subject := fmt.Sprintf("Reset %s Account Password", e.application)
 
 	data := map[string]any{

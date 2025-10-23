@@ -1,10 +1,10 @@
-package security
+package crypto
 
 import (
-	"go-gin-clean/internal/core/contracts"
-	"go-gin-clean/internal/core/domain/entities"
-	"go-gin-clean/internal/core/domain/errors"
-	"go-gin-clean/internal/core/ports"
+	domerr "go-gin-clean/internal/domain/error"
+	"go-gin-clean/internal/domain/model"
+	"go-gin-clean/internal/ports/primary"
+	"go-gin-clean/internal/ports/secondary"
 	"go-gin-clean/pkg/config"
 	"strconv"
 	"time"
@@ -16,11 +16,11 @@ type JWTService struct {
 	cfg *config.JWTConfig
 }
 
-func NewJWTService(cfg *config.JWTConfig) ports.JWTService {
+func NewJWTService(cfg *config.JWTConfig) secondary.JWTService {
 	return &JWTService{cfg: cfg}
 }
 
-func (j *JWTService) GenerateAccessToken(user *entities.User) (string, time.Time, error) {
+func (j *JWTService) GenerateAccessToken(user *model.User) (string, time.Time, error) {
 	now := time.Now()
 	expiryAt := now.Add(j.cfg.AccessTokenExpiry)
 
@@ -67,68 +67,68 @@ func (j *JWTService) GenerateRefreshToken(userID int64) (string, time.Time, erro
 	return tokenString, expiryAt, nil
 }
 
-func (j *JWTService) ValidateAccessToken(tokenString string) (*contracts.AccessTokenClaims, error) {
+func (j *JWTService) ValidateAccessToken(tokenString string) (*primary.AccessTokenClaims, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.ErrUnexpectedSigningMethod
+			return nil, domerr.ErrUnexpectedSigningMethod
 		}
 		return []byte(j.cfg.AccessTokenSecret), nil
 	})
 
 	if err != nil {
-		return nil, errors.ErrTokenInvalid
+		return nil, domerr.ErrTokenInvalid
 	}
 
 	if !token.Valid {
-		return nil, errors.ErrTokenInvalid
+		return nil, domerr.ErrTokenInvalid
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return nil, errors.ErrInvalidClaims
+		return nil, domerr.ErrInvalidClaims
 	}
 
 	tokenType, ok := claims["token_type"].(string)
 	if !ok || tokenType != "access" {
-		return nil, errors.ErrTokenInvalid
+		return nil, domerr.ErrTokenInvalid
 	}
 
 	userID, ok := claims["user_id"].(float64)
 	if !ok {
-		return nil, errors.ErrInvalidClaims
+		return nil, domerr.ErrInvalidClaims
 	}
 
 	email, ok := claims["email"].(string)
 	if !ok {
-		return nil, errors.ErrInvalidClaims
+		return nil, domerr.ErrInvalidClaims
 	}
 
 	exp, ok := claims["exp"].(float64)
 	if !ok {
-		return nil, errors.ErrInvalidClaims
+		return nil, domerr.ErrInvalidClaims
 	}
 
 	iat, ok := claims["iat"].(float64)
 	if !ok {
-		return nil, errors.ErrInvalidClaims
+		return nil, domerr.ErrInvalidClaims
 	}
 
 	nbf, ok := claims["nbf"].(float64)
 	if !ok {
-		return nil, errors.ErrInvalidClaims
+		return nil, domerr.ErrInvalidClaims
 	}
 
 	iss, ok := claims["iss"].(string)
 	if !ok {
-		return nil, errors.ErrInvalidClaims
+		return nil, domerr.ErrInvalidClaims
 	}
 
 	sub, ok := claims["sub"].(string)
 	if !ok {
-		return nil, errors.ErrInvalidClaims
+		return nil, domerr.ErrInvalidClaims
 	}
 
-	return &contracts.AccessTokenClaims{
+	return &primary.AccessTokenClaims{
 		UserID:    int64(userID),
 		Email:     email,
 		TokenType: tokenType,
@@ -140,63 +140,63 @@ func (j *JWTService) ValidateAccessToken(tokenString string) (*contracts.AccessT
 	}, nil
 }
 
-func (j *JWTService) ValidateRefreshToken(tokenString string) (*contracts.RefreshTokenClaims, error) {
+func (j *JWTService) ValidateRefreshToken(tokenString string) (*primary.RefreshTokenClaims, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.ErrUnexpectedSigningMethod
+			return nil, domerr.ErrUnexpectedSigningMethod
 		}
 		return []byte(j.cfg.RefreshTokenSecret), nil
 	})
 
 	if err != nil {
-		return nil, errors.ErrTokenInvalid
+		return nil, domerr.ErrTokenInvalid
 	}
 
 	if !token.Valid {
-		return nil, errors.ErrTokenInvalid
+		return nil, domerr.ErrTokenInvalid
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return nil, errors.ErrInvalidClaims
+		return nil, domerr.ErrInvalidClaims
 	}
 
 	tokenType, ok := claims["token_type"].(string)
 	if !ok || tokenType != "refresh" {
-		return nil, errors.ErrTokenInvalid
+		return nil, domerr.ErrTokenInvalid
 	}
 
 	userID, ok := claims["user_id"].(float64)
 	if !ok {
-		return nil, errors.ErrInvalidClaims
+		return nil, domerr.ErrInvalidClaims
 	}
 
 	exp, ok := claims["exp"].(float64)
 	if !ok {
-		return nil, errors.ErrInvalidClaims
+		return nil, domerr.ErrInvalidClaims
 	}
 
 	iat, ok := claims["iat"].(float64)
 	if !ok {
-		return nil, errors.ErrInvalidClaims
+		return nil, domerr.ErrInvalidClaims
 	}
 
 	nbf, ok := claims["nbf"].(float64)
 	if !ok {
-		return nil, errors.ErrInvalidClaims
+		return nil, domerr.ErrInvalidClaims
 	}
 
 	iss, ok := claims["iss"].(string)
 	if !ok {
-		return nil, errors.ErrInvalidClaims
+		return nil, domerr.ErrInvalidClaims
 	}
 
 	sub, ok := claims["sub"].(string)
 	if !ok {
-		return nil, errors.ErrInvalidClaims
+		return nil, domerr.ErrInvalidClaims
 	}
 
-	return &contracts.RefreshTokenClaims{
+	return &primary.RefreshTokenClaims{
 		UserID:    int64(userID),
 		TokenType: tokenType,
 		ExpiresAt: time.Unix(int64(exp), 0),

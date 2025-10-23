@@ -2,7 +2,7 @@ package mappers
 
 import (
 	"go-gin-clean/internal/adapters/primary/http/dto"
-	"go-gin-clean/internal/core/contracts"
+	"go-gin-clean/internal/ports/primary"
 )
 
 // paginationMapper implements the PaginationMapper interface
@@ -13,15 +13,15 @@ func NewPaginationMapper() PaginationMapper {
 	return &paginationMapper{}
 }
 
-func (m *paginationMapper) RequestToContract(req *dto.PaginationRequest) *contracts.PaginationRequest {
-	return &contracts.PaginationRequest{
+func (m *paginationMapper) RequestToContract(req *dto.PaginationRequest) *primary.PaginationRequest {
+	return &primary.PaginationRequest{
 		Page:    req.Page,
 		PerPage: req.PerPage,
 		Search:  req.Search,
 	}
 }
 
-func (m *paginationMapper) UserInfoResponseToDTO(resp *contracts.PaginationResponse[contracts.UserInfo]) *dto.PaginationResponse[dto.UserInfo] {
+func (m *paginationMapper) UserInfoResponseToDTO(resp *primary.PaginationResponse[primary.UserInfo]) *dto.PaginationResponse[dto.UserInfo] {
 	userMapper := NewUserMapper()
 	dtoUsers := make([]dto.UserInfo, len(resp.Data))
 	for i, user := range resp.Data {

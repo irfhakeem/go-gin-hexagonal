@@ -1,14 +1,14 @@
-package security
+package crypto
 
 import (
-	"go-gin-clean/internal/core/ports"
+	"go-gin-clean/internal/ports/secondary"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
 type BcryptService struct{}
 
-func NewBcryptService() ports.BcryptService {
+func NewBcryptService() secondary.BcryptService {
 	return &BcryptService{}
 }
 

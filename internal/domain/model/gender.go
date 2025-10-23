@@ -1,4 +1,4 @@
-package enums
+package model
 
 type Gender string
 
